@@ -1,0 +1,6 @@
+[submodule "external/HyprPanel"]
+	path = external/HyprPanel
+	url = https://github.com/Jas-SinghFSU/HyprPanel.git
+[submodule "external/ags-types"]
+	path = external/ags-types
+	url = https://github.com/Jas-SinghFSU/ags-types.git
