@@ -6,7 +6,7 @@
     "scripts": {
         "lint": "eslint --config .eslintrc.json .",
         "lint:fix": "eslint --config .eslintrc.json . --fix",
-        "format": "prettier --write 'modules/**/*.ts'",
+        "format": "prettier --write 'src/**/*.ts*'",
         "knip": "knip"
     },
     "keywords": [],
@@ -26,7 +26,6 @@
         "knip": "^5.55.1",
         "prettier": "^3.3.3",
         "tsconfig-paths": "^4.2.0",
-        "typescript": "5.7.3",
-        "sass": "^1.89.2"
+        "typescript": "5.7.3"
     }
 }

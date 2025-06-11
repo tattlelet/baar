@@ -20,11 +20,10 @@ export default function Bar(gdkmonitor: Gdk.Monitor): JSXElement {
             application={App}
         >
             <centerbox>
-                <button onClicked="echo hello" halign={Gtk.Align.CENTER}>
+                <button onClicked="echo hello" halign={Gtk.Align.START}>
                     Welcome to AGS!
                 </button>
-                <box />
-                <button onClicked={() => print('hello')} halign={Gtk.Align.CENTER}>
+                <button onClicked={() => print('hello')} halign={Gtk.Align.END}>
                     <label label={time()} />
                 </button>
             </centerbox>
