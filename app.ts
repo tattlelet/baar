@@ -1,10 +1,16 @@
 import { App } from "astal/gtk3"
 import style from "./style.scss"
-import Bar from "./src/widget/Bar"
+import { Baar } from "src/baar";
+
+
+function request_handler(request: string, response: (response: unknown) => void): void {
+    console.log(request, response);
+    response("I dont do anything yet :)");
+}
 
 App.start({
     css: style,
-    main() {
-        App.get_monitors().map(Bar)
-    },
-})
+    instanceName: 'baar',
+    requestHandler: request_handler,
+    main: Baar.init,
+});
