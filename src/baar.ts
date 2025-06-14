@@ -19,12 +19,10 @@ export class Baar {
 
             // todo: monitor connect disconnect
             // https://aylur.github.io/astal/guide/typescript/faq
-        }
-        catch(err: unknown) {
+        } catch (err: unknown) {
             Baar.logger.error("I have no clue what happened", err);
-        }
-        finally {
-            initTimer.end()
+        } finally {
+            initTimer.end();
         }
     }
 }

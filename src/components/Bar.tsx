@@ -1,8 +1,8 @@
-import { App, Astal, Gtk, Gdk } from 'astal/gtk3';
-import { Variable, bind } from 'astal';
-import { MonitorIndex } from 'src/util/monitor';
+import { App, Astal, Gtk, Gdk } from "astal/gtk3";
+import { Variable, bind } from "astal";
+import { MonitorIndex } from "src/util/monitor";
 
-const time = Variable('').poll(1000, 'date');
+const time = Variable("").poll(1000, "date");
 
 const idleInhibit = Variable(false);
 
@@ -24,7 +24,7 @@ export default async function Bar(monitorIndex: MonitorIndex): Promise<Nullable<
                 <button onClicked="echo hello" halign={Gtk.Align.START}>
                     Welcome to AGS!
                 </button>
-                <button onClicked={() => print('hello')} halign={Gtk.Align.END}>
+                <button onClicked={() => print("hello")} halign={Gtk.Align.END}>
                     <label label={time()} />
                 </button>
             </centerbox>

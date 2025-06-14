@@ -1,5 +1,5 @@
-import GLib from 'gi://GLib';
-import { Logger } from './log';
+import GLib from "gi://GLib";
+import { Logger } from "./log";
 
 export class Timer {
     private static logger = Logger.get(Timer);
@@ -19,17 +19,17 @@ export class Timer {
      * Returns the elapsed time in milliseconds for further processing
      */
     public end(): number {
-        const elapsed = (this.now() - this.startTime);
+        const elapsed = this.now() - this.startTime;
         Timer.logger.info(`${this.label} ellpased ${elapsed.toFixed(1)}µs`);
         return elapsed;
     }
-    
+
     /**
      * Retrieves the current elapsed time without stopping the timer
      * Useful for intermediate measurements during long-running operations
      */
     public elapsed(): number {
-        return (this.now() - this.startTime);
+        return this.now() - this.startTime;
     }
 
     /**
@@ -43,8 +43,7 @@ export class Timer {
         const timer = new Timer(label);
         try {
             return await fn();
-        }
-        finally {
+        } finally {
             timer.end();
         }
     }
@@ -60,8 +59,7 @@ export class Timer {
         const timer = new Timer(label);
         try {
             return fn();
-        }
-        finally {
+        } finally {
             timer.end();
         }
     }

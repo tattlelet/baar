@@ -10,9 +10,10 @@ export class Logger {
     private constructor(identifier?: string) {
         if (identifier !== undefined) {
             Object.getOwnPropertyNames(this).forEach(key => {
-                const consoleKey = key === 'info' ? 'log' : key;
+                const consoleKey = key === "info" ? "log" : key;
                 if (consoleKey in console) {
-                    (this as any)[key] = (...args: any[]): _LogFunc => (console as any)[consoleKey](`[${identifier}]`, ...args);
+                    (this as any)[key] = (...args: any[]): _LogFunc =>
+                        (console as any)[consoleKey](`[${identifier}]`, ...args);
                 }
             });
         }

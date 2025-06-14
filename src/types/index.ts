@@ -1,6 +1,6 @@
-import { Gio } from 'astal/file';
-import { GLib } from 'astal/gobject';
-import { Logger } from 'src/util/log';
+import { Gio } from "astal/file";
+import { GLib } from "astal/gobject";
+import { Logger } from "src/util/log";
 
 declare global {
     const CONFIG_DIR: string;
@@ -17,21 +17,21 @@ declare global {
     abstract class Result<V, E> {
         public abstract isOk(): this is Ok<V>;
         public abstract isErr(): this is Err<E>;
-        public abstract match<R>(okHandler: (v: V | undefined) => R, errHandler: (e: E  | undefined) => R): R;
+        public abstract match<R>(okHandler: (v: V | undefined) => R, errHandler: (e: E | undefined) => R): R;
     }
-    
+
     class Ok<V> extends Result<V, never> {
-        constructor(public readonly value?: V) {};
-        isOk(): this is Ok<V> {};
-        isErr(): this is Err<never> {};
-        public match<R>(okHandler: (v: V | undefined) => R, errHandler: (e: never | undefined) => R): R {};
+        constructor(public readonly value?: V) {}
+        isOk(): this is Ok<V> {}
+        isErr(): this is Err<never> {}
+        public match<R>(okHandler: (v: V | undefined) => R, errHandler: (e: never | undefined) => R): R {}
     }
 
     class Err<E> extends Result<never, E> {
         constructor(public readonly value?: E) {}
-        isOk(): this is Ok<never> {};
-        isErr(): this is Err<E> {};
-        public match<R>(okHandler: (v: never | undefined) => R, errHandler: (e: E | undefined) => R): R {};
+        isOk(): this is Ok<never> {}
+        isErr(): this is Err<E> {}
+        public match<R>(okHandler: (v: never | undefined) => R, errHandler: (e: E | undefined) => R): R {}
     }
 }
 
@@ -51,7 +51,7 @@ function ensureJsonFile(path: string): void {
 
     if (!file.query_exists(null)) {
         const stream = file.create(Gio.FileCreateFlags.NONE, null);
-        stream.write_all('{}', null);
+        stream.write_all("{}", null);
     }
 }
 
@@ -68,13 +68,12 @@ function ensureFile(path: string): void {
     }
 }
 
-const dataDir = typeof DATADIR !== 'undefined' ? DATADIR : SRC;
+const dataDir = typeof DATADIR !== "undefined" ? DATADIR : SRC;
 
 async function wrapIO<T>(logger: Logger, promise: Promise<T>, message: string): Promise<Result<T, unknown>> {
     try {
         return new Ok<T>(await promise);
-    }
-    catch(err: unknown) {
+    } catch (err: unknown) {
         logger.warn(message, err);
         return new Err<unknown>(err);
     }
@@ -85,7 +84,7 @@ abstract class Result<V, E> {
     public abstract isErr(): this is Err<E>;
     public abstract match<R>(okHandler: (v?: V) => R, errHandler: (e?: E) => R): R;
 }
-    
+
 class Ok<V> extends Result<V, never> {
     constructor(public readonly value?: V) {
         super();
@@ -131,7 +130,7 @@ Object.assign(globalThis, {
     wrapIO: wrapIO,
     Result: Result,
     Ok: Ok,
-    Err: Err
+    Err: Err,
 });
 
 Logger.get(this).debug(CONFIG_DIR);

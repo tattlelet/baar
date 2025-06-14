@@ -3,7 +3,6 @@ import AstalHyprland from "gi://AstalHyprland";
 
 const hyprlandService = AstalHyprland.get_default();
 
-
 /**
  * Creates widgets for all available monitors with proper GDK to Hyprland monitor mapping.
  *
@@ -15,7 +14,7 @@ export async function forMonitors(
 ): Promise<Nullable<JSX.Element>[]> {
     const display = Gdk.Display.get_default();
     if (display === null) {
-        console.error('[forMonitors] No display available');
+        console.error("[forMonitors] No display available");
         return [];
     }
 
@@ -33,7 +32,7 @@ export async function forMonitors(
         }
     }
 
-    const monitorPromises = mappings.map(async (monitorIndex) => {
+    const monitorPromises = mappings.map(async monitorIndex => {
         try {
             return await widget(monitorIndex);
         } catch (error) {
@@ -46,10 +45,9 @@ export async function forMonitors(
     return widgets.filter(widget => widget !== null);
 }
 
-
 export class MonitorUtil {
     public static keyForGdkMonitor(monitor: Gdk.Monitor): string {
-        const {width, height} = monitor.get_geometry();
+        const { width, height } = monitor.get_geometry();
         const model = monitor.get_model();
         const manufacturer = monitor.get_manufacturer();
 
@@ -68,8 +66,10 @@ export class MonitorUtil {
     public static mapGdkMonitor(gdkMonitorArg: GdkMonitorArg): Nullable<MonitorIndex> {
         const keyForGdkMonitor = this.keyForGdkMonitor(gdkMonitorArg.gdkMonitor);
         const hyprlandMonitors = hyprlandService.get_monitors();
-        
-        let result: Undefinable<number> = hyprlandMonitors.findIndex((monitor) => this.keyForHyprlandMonitor(monitor) === keyForGdkMonitor);
+
+        let result: Undefinable<number> = hyprlandMonitors.findIndex(
+            monitor => this.keyForHyprlandMonitor(monitor) === keyForGdkMonitor
+        );
 
         if (result === -1) {
             console.error(`[MonitorService] Could not map GDK Monitor ${keyForGdkMonitor} to any Hyprland monitors.`);
@@ -78,7 +78,7 @@ export class MonitorUtil {
 
         return {
             gdkMonitor: gdkMonitorArg.gdkMonitorIndex,
-            hyprlandMonitor: result
+            hyprlandMonitor: result,
         };
     }
 }
@@ -86,9 +86,9 @@ export class MonitorUtil {
 export type GdkMonitorArg = {
     readonly gdkMonitorIndex: number;
     readonly gdkMonitor: Gdk.Monitor;
-}
+};
 
 export type MonitorIndex = {
     readonly gdkMonitor: number;
     readonly hyprlandMonitor?: number;
-}
+};
