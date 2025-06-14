@@ -1,6 +1,9 @@
 import GLib from 'gi://GLib';
+import { Logger } from './log';
 
 export class Timer {
+    private static logger = Logger.get(Timer);
+
     private readonly startTime: number;
     private readonly label: string;
     private readonly now: () => number;
@@ -17,7 +20,7 @@ export class Timer {
      */
     public end(): number {
         const elapsed = (this.now() - this.startTime);
-        console.log(`${this.label} ellpased ${elapsed.toFixed(1)}µs`);
+        Timer.logger.info(`${this.label} ellpased ${elapsed.toFixed(1)}µs`);
         return elapsed;
     }
     

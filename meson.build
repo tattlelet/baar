@@ -39,3 +39,4 @@ configure_file(
 )
 
 install_subdir('scripts', install_dir: datadir)
+install_subdir('src/style', install_dir: datadir / 'src')
