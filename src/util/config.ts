@@ -1,10 +1,13 @@
-import { execAsync, Gio, monitorFile, readFileAsync, writeFileAsync } from "astal";
+import { execAsync, Gio, GLib, monitorFile, readFileAsync, writeFileAsync } from "astal";
 import { App } from "astal/gtk3";
 import { Logger } from "./log";
+import { Timer } from "./timer";
 
 export class ThemeManager {
     private static logger = Logger.get(ThemeManager);
     private static INSTANCE = new ThemeManager();
+
+    private readonly reloader = new LockedRunner();
 
     private constructor(
         private readonly configPath = `${CONFIG_DIR}/config.json`,
@@ -12,7 +15,6 @@ export class ThemeManager {
         private readonly variablesPath: string = `${TMP}/variables.scss`,
         private readonly combinedSCSSPath: string = `${TMP}/_main.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
-        private lastPromise: Promise<void> = Promise.resolve(),
         private monitors?: Gio.FileMonitor[]
     ) {}
 
@@ -74,6 +76,7 @@ export class ThemeManager {
     }
 
     private async loadStyle(): Promise<void> {
+        ThemeManager.logger.info("Starting config load");
         const config = Config.readConfigFile(this.configPath);
         const savedVariables = this.saveVariables(config);
 
@@ -86,17 +89,19 @@ export class ThemeManager {
         (await this.rebuildCss()).match(
             _ => {
                 App.apply_css(this.endCSSPath, true);
-                ThemeManager.logger.info("Config loaded");
+                ThemeManager.logger.info("Config loaded successfully");
             },
             _ => _
         );
     }
 
     public async syncLoadStyle(): Promise<void> {
-        ThemeManager.logger.info("Starting config load");
-        const result = this.lastPromise.then(_ => this.loadStyle());
-        this.lastPromise = result.catch(ThemeManager.logger.info);
-        return result;
+        const timer = new Timer();
+        try {
+            await this.reloader.sync(this.loadStyle.bind(this));
+        } finally {
+            timer.log((ellapsed, unit) => ThemeManager.logger.info(`Config loading ellapsed ${ellapsed}${unit}`));
+        }
     }
 
     public startMonitors(): void {
@@ -110,7 +115,7 @@ export class ThemeManager {
     }
 }
 
-type Readonly<T> = {
+export type Readonly<T> = {
     readonly [K in keyof T]: T[K];
 };
 
@@ -118,7 +123,12 @@ export class Config {
     private static logger = Logger.get(Config);
 
     public backgroundColor: string = "#000000";
+    public backgroundOpacity: string = "10";
     public foregroundColor: string = "#000000";
+    public borderRadius: string = "0px";
+    public borderMargin: string = "1px";
+    public fontFamily: string = "DejaVuSansM Nerd Font";
+    public fontSize: string = "14px";
 
     private constructor(data: Partial<Config>) {
         Object.keys(data).forEach(key => {
@@ -152,6 +162,8 @@ export class Config {
                 }
             );
 
+            // Todo: write a different config parser
+            // Todo: validate for injections
             const partialConfig = JSON.parse(configContent) as Partial<Config>;
             Config.logger.debug("Loaded+parsed", partialConfig);
             const config = this.create(partialConfig);
@@ -163,7 +175,7 @@ export class Config {
     }
 
     public static defaultHandler(
-        handler: (...args: any) => Promise<any>,
+        handler: (...args: any) => any,
         file: string,
         event: Gio.FileMonitorEvent,
         excludeEvents: Gio.FileMonitorEvent[] = []
@@ -171,6 +183,27 @@ export class Config {
         Config.logger.info(file, event);
         if (!excludeEvents.includes(event)) {
             handler().catch(Config.logger.info);
+        }
+    }
+}
+
+export class ConfigSetup {
+    private static logger = Logger.get(ConfigSetup);
+
+    public static run(): void {
+        this.logger.debug(`CONFIG_DIR - ${CONFIG_DIR}`);
+        this.logger.debug(`CONFIG_FILE - ${CONFIG_FILE}`);
+        this.logger.debug(`TMP - ${TMP}`);
+        this.logger.debug(`USER - ${USER}`);
+        this.logger.debug(`SRC_DIR - ${SRC_DIR}`);
+        this.ensureDirectory(TMP);
+    }
+
+    private static ensureDirectory(path: string): void {
+        if (!GLib.file_test(path, GLib.FileTest.EXISTS)) {
+            if (Gio.File.new_for_path(path).make_directory_with_parents(null)) {
+                this.logger.debug(`Path ${path} created`);
+            }
         }
     }
 }

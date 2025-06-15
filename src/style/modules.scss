@@ -1,17 +1,17 @@
-// https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-24/gtk/theme/Adwaita/_colors-public.scss
 window.Bar {
     background: transparent;
-    color: $foregroundColor;
-    font-weight: bold;
 
-    >centerbox {
-        background: $backgroundColor;
-        border-radius: 10px;
-        margin: 8px;
+    centerbox {
+        background-color: rgba(red($backgroundColor), green($backgroundColor), blue($backgroundColor), $backgroundOpacity);
+        border-radius: $borderRadius;
+        margin: $borderMargin;
     }
 
     button {
-        border-radius: 8px;
-        margin: 2px;
+        background-color: #000000;
+        border-radius: 2px;
+        color: $foregroundColor;
+        font-family: $fontFamily, monospace;
+        font-size: $fontSize;
     }
 }
