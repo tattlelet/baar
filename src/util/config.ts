@@ -10,10 +10,10 @@ export class ThemeManager {
     private readonly reloader = new LockedRunner();
 
     private constructor(
-        private readonly configPath = `${CONFIG_DIR}/config.json`,
+        private readonly configPath = CONFIG_FILE,
         private readonly scssPaths: Array<string> = Array.of(`${SRC_DIR}/src/style/modules.scss`),
         private readonly variablesPath: string = `${TMP}/variables.scss`,
-        private readonly combinedSCSSPath: string = `${TMP}/_main.scss`,
+        private readonly combinedSCSSPath: string = `${TMP}/combined.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
     ) {}
@@ -119,6 +119,43 @@ export type Readonly<T> = {
     readonly [K in keyof T]: T[K];
 };
 
+export class ConfigParser {
+    private static logger = Logger.get(ConfigParser);
+    private static configLine: RegExp = new RegExp(
+        [
+            "^(",
+            [
+                "(?<emptyLine>\\s*)",
+                "(?<paramKey>[a-zA-Z][a-zA-Z0-9-.]+[a-zA-Z0-9]) +(?<paramValue>[# a-zA-Z0-9-.]+[a-zA-Z0-9])",
+                "(?<comment>#.+)",
+            ].join("|"),
+            ")$",
+        ].join("")
+    );
+
+    public async parse(content: String): Promise<Readonly<Partial<Config>>> {
+        const configMap: { [key: string]: string } = {};
+        const lines = content.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+            const match = lines[i].match(ConfigParser.configLine);
+            if (match === null || match.groups === undefined) {
+                ConfigParser.logger.warn(
+                    `Skipping line ${i + 1}: '[${lines[i]}]' for config doesnt match pattern ${ConfigParser.configLine}.`
+                );
+                continue;
+            }
+
+            if (match.groups.emptyLine !== undefined || match.groups.comment !== undefined) {
+                continue;
+            }
+
+            configMap[match.groups.paramKey] = match.groups.paramValue;
+        }
+        ConfigParser.logger.debug("Partial config parsed:", configMap);
+        return Object.freeze(configMap);
+    }
+}
+
 export class Config {
     private static logger = Logger.get(Config);
 
@@ -147,7 +184,7 @@ export class Config {
 
     private static create(data?: Partial<Config>): Readonly<Config> {
         const config = new Config(data ?? {}) as Readonly<Config>;
-        Config.logger.debug("Loaded config", config);
+        Config.logger.debug("End config:", config);
         return config;
     }
 
@@ -156,17 +193,12 @@ export class Config {
             const configContent = (
                 await wrapIO(Config.logger, readFileAsync(path), "Failed to read config file")
             ).match(
-                v => v!,
-                e => {
-                    throw e;
-                }
+                v => v || "",
+                _ => ""
             );
 
-            // Todo: write a different config parser
-            // Todo: validate for injections
-            const partialConfig = JSON.parse(configContent) as Partial<Config>;
-            Config.logger.debug("Loaded+parsed", partialConfig);
-            const config = this.create(partialConfig);
+            const partialConfig = new ConfigParser().parse(configContent);
+            const config = this.create(await partialConfig);
             return config;
         } catch (err: unknown) {
             Config.logger.warn("No config was loaded: ", err);
