@@ -1,11 +1,11 @@
 export abstract class Result<V, E> {
     public abstract isOk(): this is Ok<V>;
     public abstract isErr(): this is Err<E>;
-    public abstract match<R>(okHandler: (v?: V) => R, errHandler: (e?: E) => R): R;
+    public abstract match<R>(okHandler: (v: V) => R, errHandler: (e: E) => R): R;
 }
 
 export class Ok<V> extends Result<V, never> {
-    constructor(public readonly value?: V) {
+    constructor(public readonly value: V) {
         super();
     }
 
@@ -17,13 +17,13 @@ export class Ok<V> extends Result<V, never> {
         return false;
     }
 
-    public match<R>(okHandler: (v?: V) => R, errHandler: (e?: never) => R): R {
+    public match<R>(okHandler: (v: V) => R, errHandler: (e: never) => R): R {
         return okHandler(this.value);
     }
 }
 
 export class Err<E> extends Result<never, E> {
-    constructor(public readonly value?: E) {
+    constructor(public readonly value: E) {
         super();
     }
 
@@ -35,7 +35,7 @@ export class Err<E> extends Result<never, E> {
         return true;
     }
 
-    public match<R>(okHandler: (v?: never) => R, errHandler: (e?: E) => R): R {
+    public match<R>(okHandler: (v: never) => R, errHandler: (e: E) => R): R {
         return errHandler(this.value);
     }
 }

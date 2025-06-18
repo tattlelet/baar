@@ -31,7 +31,7 @@ export class ThemeManager {
 
         return (await results).map(result =>
             result.match(
-                v => v!,
+                v => v,
                 e => ""
             )
         );
@@ -66,7 +66,7 @@ export class ThemeManager {
                 "Unable to rebuild final css"
             )
         ).match<Result<Void, unknown>>(
-            _ => new Ok<Void>(),
+            _ => new Ok<Void>(undefined),
             e => new Err<unknown>(e)
         );
     }
@@ -126,8 +126,8 @@ export class ConfigParser {
             "^(",
             [
                 "(?<emptyLine>\\s*)",
-                "(?<paramKey>[a-zA-Z][a-zA-Z0-9-.]+[a-zA-Z0-9]) +(?<paramValue>[# a-zA-Z0-9-.]+[a-zA-Z0-9])",
                 "(?<comment>#.+)",
+                "(?<paramKey>[a-zA-Z][a-zA-Z0-9-.]+[a-zA-Z0-9]) +(?<paramValue>[# a-zA-Z0-9-.]+[a-zA-Z0-9])",
             ].join("|"),
             ")$",
         ].join("")

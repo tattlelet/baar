@@ -1,7 +1,7 @@
 import Bar from "./components/Bar";
 import { ConfigSetup, ThemeManager } from "./util/config";
 import { Logger } from "./util/log";
-import { forMonitors } from "./util/monitor";
+import { MonitorManager } from "./util/monitor";
 import { Timer } from "./util/timer";
 
 export class Baar {
@@ -13,17 +13,22 @@ export class Baar {
 
         try {
             ConfigSetup.run();
-            initTimer.log((ellapsed, unit) => Baar.logger.debug(`ConfigWatchdog ellapsed ${ellapsed}${unit}`));
+            initTimer.log((ellapsed, unit) => Baar.logger.debug(`ConfigSetup ellapsed ${ellapsed}${unit}`));
             const themeManager = ThemeManager.instace();
             const configLoaded = themeManager.syncLoadStyle();
             themeManager.startMonitors();
 
             await configLoaded;
             initTimer.log((ellapsed, unit) => Baar.logger.debug(`Theme initialization ellapsed ${ellapsed}${unit}`));
-            await forMonitors(Bar);
 
-            // todo: monitor connect disconnect
-            // https://aylur.github.io/astal/guide/typescript/faq
+            const monitorManager = MonitorManager.instance();
+            await monitorManager.applyOnAllMononitor(Bar);
+            initTimer.log((ellapsed, unit) => Baar.logger.debug(`Bars registration ellapsed ${ellapsed}${unit}`));
+
+            monitorManager.registerEvents(Bar);
+            initTimer.log((ellapsed, unit) =>
+                Baar.logger.debug(`Bar event monitoring registration ellapsed ${ellapsed}${unit}`)
+            );
         } catch (err: unknown) {
             Baar.logger.error("I have no clue what happened", err);
         } finally {

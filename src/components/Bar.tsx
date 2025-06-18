@@ -1,22 +1,20 @@
 import { App, Astal, Gtk, Gdk } from "astal/gtk3";
 import { Variable, bind } from "astal";
-import { MonitorIndex } from "src/util/monitor";
+import { HybridMonitor } from "src/util/monitor";
 
 const time = Variable("").poll(1000, "date");
 
 const idleInhibit = Variable(false);
 
-export default async function Bar(monitorIndex: MonitorIndex): Promise<Nullable<JSX.Element>> {
+export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullable<JSX.Element>> {
     const { TOP, LEFT, RIGHT } = Astal.WindowAnchor;
 
     return (
         <window
             inhibit={bind(idleInhibit)}
-            name={`bar-${monitorIndex.hyprlandMonitor}`}
-            namespace={`bar-${monitorIndex.hyprlandMonitor}`}
             className="Bar"
             application={App}
-            monitor={monitorIndex.gdkMonitor}
+            gdkmonitor={hybridMonitor.gdkMonitor}
             exclusivity={Astal.Exclusivity.EXCLUSIVE}
             anchor={TOP | LEFT | RIGHT}
         >

@@ -1,51 +1,12 @@
-import { Gdk } from "astal/gtk3";
+import { App, Gdk } from "astal/gtk3";
 import AstalHyprland from "gi://AstalHyprland";
+import { Timer } from "./timer";
 
 const hyprlandService = AstalHyprland.get_default();
 
-/**
- * Creates widgets for all available monitors with proper GDK to Hyprland monitor mapping.
- *
- * @param widget - Function that creates a widget for a given monitor index
- * @returns Array of created widgets for all available monitors
- */
-export async function forMonitors(
-    widget: (monitorIndex: MonitorIndex) => Promise<Nullable<JSX.Element>>
-): Promise<Nullable<JSX.Element>[]> {
-    const display = Gdk.Display.get_default();
-    if (display === null) {
-        console.error("[forMonitors] No display available");
-        return [];
-    }
+export class MonitorKey {
+    private static logger = Logger.get(MonitorKey);
 
-    const mappings = [];
-    for (let gdkMonitorIndex = 0; gdkMonitorIndex < display.get_n_monitors(); gdkMonitorIndex++) {
-        const monitor = display.get_monitor(gdkMonitorIndex);
-        if (monitor === null) {
-            console.warn(`[forMonitors] Skipping invalid monitor at index ${gdkMonitorIndex}`);
-            continue;
-        }
-
-        const mapping = MonitorUtil.mapGdkMonitor({ gdkMonitorIndex: gdkMonitorIndex, gdkMonitor: monitor });
-        if (mapping !== null) {
-            mappings.push(mapping);
-        }
-    }
-
-    const monitorPromises = mappings.map(async monitorIndex => {
-        try {
-            return await widget(monitorIndex);
-        } catch (error) {
-            console.error(`[forMonitors] Failed to create widget for monitor ${monitorIndex.gdkMonitor}:`, error);
-            return null;
-        }
-    });
-    const widgets = await Promise.all(monitorPromises);
-
-    return widgets.filter(widget => widget !== null);
-}
-
-export class MonitorUtil {
     public static keyForGdkMonitor(monitor: Gdk.Monitor): string {
         const { width, height } = monitor.get_geometry();
         const model = monitor.get_model();
@@ -63,32 +24,179 @@ export class MonitorUtil {
         return `${manufacturer}-${model}-${width}.${height}`;
     }
 
-    public static mapGdkMonitor(gdkMonitorArg: GdkMonitorArg): Nullable<MonitorIndex> {
-        const keyForGdkMonitor = this.keyForGdkMonitor(gdkMonitorArg.gdkMonitor);
+    public static mapGdkMonitor(gdkMonitor: Gdk.Monitor): HybridMonitor {
+        const keyForGdkMonitor = this.keyForGdkMonitor(gdkMonitor);
         const hyprlandMonitors = hyprlandService.get_monitors();
 
-        let result: Undefinable<number> = hyprlandMonitors.findIndex(
+        let hyprlandMonitor: AstalHyprland.Monitor | undefined = hyprlandMonitors.find(
             monitor => this.keyForHyprlandMonitor(monitor) === keyForGdkMonitor
         );
 
-        if (result === -1) {
-            console.error(`[MonitorService] Could not map GDK Monitor ${keyForGdkMonitor} to any Hyprland monitors.`);
-            result = undefined;
+        if (hyprlandMonitor === undefined) {
+            MonitorKey.logger.warn(`Could not map GDK Monitor ${keyForGdkMonitor} to any Hyprland monitors.`);
         }
 
-        return {
-            gdkMonitor: gdkMonitorArg.gdkMonitorIndex,
-            hyprlandMonitor: result,
-        };
+        return new HybridMonitor(gdkMonitor, hyprlandMonitor);
+    }
+
+    public static async monitorMappings(): Promise<HybridMonitor[]> {
+        const display = Gdk.Display.get_default();
+        if (display === null) {
+            MonitorKey.logger.error("No display available.");
+            return [];
+        }
+
+        const mappings = [];
+        for (let gdkMonitorIndex = 0; gdkMonitorIndex < display.get_n_monitors(); gdkMonitorIndex++) {
+            const monitor = display.get_monitor(gdkMonitorIndex);
+            if (monitor === null) {
+                MonitorKey.logger.warn(`Skipping invalid monitor at index ${gdkMonitorIndex}`);
+                continue;
+            }
+
+            mappings.push(MonitorKey.mapGdkMonitor(monitor));
+        }
+        return mappings;
     }
 }
 
-export type GdkMonitorArg = {
-    readonly gdkMonitorIndex: number;
-    readonly gdkMonitor: Gdk.Monitor;
-};
+export class HybridMonitor {
+    constructor(
+        public readonly gdkMonitor: Gdk.Monitor,
+        public readonly hyprlandMonitor?: AstalHyprland.Monitor
+    ) {}
+}
 
-export type MonitorIndex = {
-    readonly gdkMonitor: number;
-    readonly hyprlandMonitor?: number;
-};
+export class LoadedWidget {
+    constructor(
+        public readonly hybridMonitor: HybridMonitor,
+        public readonly widget: JSX.Element
+    ) {}
+}
+
+export class MonitorManager {
+    private static logger = Logger.get(MonitorManager);
+    private static INSTANCE = new MonitorManager();
+
+    private hyprlandMap: Map<AstalHyprland.Monitor, LoadedWidget[]> = new Map();
+    private gdkMap: Map<Gdk.Monitor, LoadedWidget[]> = new Map();
+
+    private constructor() {}
+
+    public static instance() {
+        return MonitorManager.INSTANCE;
+    }
+
+    private async wrapWidgetPromise(
+        hybridMonitor: HybridMonitor,
+        promise: Promise<Nullable<JSX.Element>>
+    ): Promise<Result<LoadedWidget, unknown>> {
+        return new Promise<Result<LoadedWidget, any>>((resolve, reject) => {
+            promise
+                .then(fulfillReason => {
+                    if (fulfillReason === null) {
+                        resolve(new Err<unknown>(new Error(`widget is null for ${hybridMonitor}`)));
+                    } else {
+                        resolve(new Ok(new LoadedWidget(hybridMonitor, fulfillReason)));
+                    }
+                })
+                .catch(rejectReason => {
+                    resolve(
+                        new Err<unknown>(
+                            new Error(`Failed to create widget for monitor ${hybridMonitor}:`, rejectReason)
+                        )
+                    );
+                });
+        });
+    }
+
+    private addToCache(loadedWidget: LoadedWidget): void {
+        const gdkMappedWidgets = this.gdkMap.get(loadedWidget.hybridMonitor.gdkMonitor) || [];
+        gdkMappedWidgets.push(loadedWidget);
+        this.gdkMap.set(loadedWidget.hybridMonitor.gdkMonitor, gdkMappedWidgets);
+
+        const hyprlandMonitor = loadedWidget.hybridMonitor.hyprlandMonitor;
+        if (loadedWidget.hybridMonitor.hyprlandMonitor !== null) {
+            const hyprlandMappedWidgets = this.hyprlandMap.get(hyprlandMonitor!) || [];
+            hyprlandMappedWidgets.push(loadedWidget);
+            this.hyprlandMap.set(hyprlandMonitor!, gdkMappedWidgets);
+        }
+    }
+
+    public async applyOnAllMononitor(
+        widgetF: (hybridMonitor: HybridMonitor) => Promise<Nullable<JSX.Element>>
+    ): Promise<LoadedWidget[]> {
+        const promises = (await MonitorKey.monitorMappings()).map(hybridMonitor =>
+            this.wrapWidgetPromise(hybridMonitor, widgetF(hybridMonitor))
+        );
+
+        const loadedWidgets: LoadedWidget[] = [];
+        (await Promise.all(promises)).forEach(result =>
+            result.match(
+                loadedWidget => {
+                    loadedWidgets.push(loadedWidget);
+                    this.addToCache(loadedWidget);
+                },
+                e => {
+                    MonitorManager.logger.error(e);
+                }
+            )
+        );
+
+        return loadedWidgets;
+    }
+
+    public registerEvents(widgetF: (hybridMonitor: HybridMonitor) => Promise<Nullable<JSX.Element>>) {
+        App.connect("monitor-added", async (_, gdkmonitor) => {
+            const timer = new Timer();
+            MonitorManager.logger.debug(`monitor-added event for ${gdkmonitor} received.`);
+            try {
+                const hybridMonitor = MonitorKey.mapGdkMonitor(gdkmonitor);
+                (await this.wrapWidgetPromise(hybridMonitor, widgetF(hybridMonitor))).match(
+                    loadedWidget => {
+                        this.addToCache(loadedWidget);
+                        MonitorManager.logger.debug(`new widget added to ${gdkmonitor}.`);
+                    },
+                    e => {
+                        MonitorManager.logger.error(e);
+                    }
+                );
+            } finally {
+                timer.log((ellapsed, unit) =>
+                    MonitorManager.logger.debug(`Addeding monitor ellapsed ${ellapsed}${unit}`)
+                );
+            }
+        });
+
+        App.connect("monitor-removed", async (_, gdkmonitor) => {
+            const timer = new Timer();
+            try {
+                MonitorManager.logger.debug(`monitor-removed event for ${gdkmonitor} received.`);
+
+                const loadedWidgets = this.gdkMap.get(gdkmonitor);
+                if (loadedWidgets === null) {
+                    MonitorManager.logger.debug(`Could not find widget for monitor ${gdkmonitor} on removal event.`);
+                }
+
+                loadedWidgets?.forEach(loadedWidget => {
+                    loadedWidget.widget.destroy();
+                    if (this.gdkMap.delete(loadedWidget.hybridMonitor.gdkMonitor)) {
+                        MonitorManager.logger.debug(`Removed ${gdkmonitor} from cache.`);
+                    }
+
+                    const hyprlandMonitor = loadedWidget.hybridMonitor.hyprlandMonitor;
+                    if (hyprlandMonitor !== undefined) {
+                        if (this.hyprlandMap.delete(loadedWidget.hybridMonitor.hyprlandMonitor!)) {
+                            MonitorManager.logger.debug(`Removed ${hyprlandMonitor} from cache.`);
+                        }
+                    }
+                    MonitorManager.logger.debug(`All widgets destroyed from ${gdkmonitor}.`);
+                });
+            } finally {
+                timer.log((ellapsed, unit) =>
+                    MonitorManager.logger.debug(`Removing monitor ellapsed ${ellapsed}${unit}`)
+                );
+            }
+        });
+    }
+}
