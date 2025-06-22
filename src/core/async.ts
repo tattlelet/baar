@@ -94,3 +94,22 @@ export function withTimeout<T extends any[], R extends any>(
         });
     };
 }
+
+export class Atomic<T extends any> {
+    constructor(
+        private t: T,
+        private lockedRunner = new LockedRunner()
+    ) {}
+
+    private async _set(t: T): Promise<void> {
+        this.t = t;
+    }
+
+    public async set(t: T): Promise<void> {
+        this.lockedRunner.sync(this._set.bind(this), t);
+    }
+
+    public get(): T {
+        return this.t;
+    }
+}

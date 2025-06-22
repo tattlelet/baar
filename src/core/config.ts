@@ -2,11 +2,13 @@ import { execAsync, Gio, GLib, monitorFile, readFileAsync, writeFileAsync } from
 import { App } from "astal/gtk3";
 import { Logger } from "./log";
 import { Timer } from "./timer";
+import { delimiterSplit } from "./string";
 
 export class ThemeManager {
     private static logger = Logger.get(ThemeManager);
     private static INSTANCE = new ThemeManager();
 
+    private currentConfig = new Atomic<Readonly<Config> | undefined>(undefined);
     private readonly reloader = new LockedRunner();
 
     private constructor(
@@ -17,6 +19,18 @@ export class ThemeManager {
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
     ) {}
+
+    public async getConfig(): Promise<Result<Readonly<Config>, undefined>> {
+        const config = this.currentConfig.get();
+        if (config === undefined) {
+            return new Err(config);
+        }
+        return new Ok(config);
+    }
+
+    private async setConfig(config: Readonly<Config>): Promise<void> {
+        this.currentConfig.set(config);
+    }
 
     public static instace(): ThemeManager {
         return this.INSTANCE;
@@ -86,8 +100,10 @@ export class ThemeManager {
         await savedVariables;
         await combinedFiles;
 
+        const doneConfig = await config;
         (await this.rebuildCss()).match(
             _ => {
+                this.setConfig(doneConfig);
                 App.apply_css(this.endCSSPath, true);
                 ThemeManager.logger.info("Config loaded successfully");
             },
@@ -133,14 +149,16 @@ export class ConfigParser {
         ].join("")
     );
 
-    public async parse(content: String): Promise<Readonly<Partial<Config>>> {
+    public async parse(content: string): Promise<Readonly<Partial<Config>>> {
         const configMap: { [key: string]: string } = {};
-        const lines = content.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-            const match = lines[i].match(ConfigParser.configLine);
+        let i = 0;
+        for (const line of delimiterSplit(content, "\n")) {
+            // this is okay because we always say the line number as +1
+            ++i;
+            const match = line.match(ConfigParser.configLine);
             if (match === null || match.groups === undefined) {
                 ConfigParser.logger.warn(
-                    `Skipping line ${i + 1}: '[${lines[i]}]' for config doesnt match pattern ${ConfigParser.configLine}.`
+                    `Skipping line ${i + 1}: '[${line}]' for config doesnt match pattern ${ConfigParser.configLine}.`
                 );
                 continue;
             }
@@ -160,17 +178,40 @@ export class Config {
     private static logger = Logger.get(Config);
 
     public backgroundColor: string = "#000000";
-    public backgroundOpacity: string = "10";
-    public foregroundColor: string = "#000000";
+    public backgroundOpacity: string = "1";
+    public foregroundColor: string = "#ffffff";
     public borderRadius: string = "0px";
     public borderMargin: string = "1px";
     public fontFamily: string = "DejaVuSansM Nerd Font";
     public fontSize: string = "14px";
+    public weather: boolean = false;
+    public itemBackgroundColor: string = "#000000";
+    public itemBackgroundOpacity: string = "1";
+    public itemBorderRadius: string = "10px";
+    public itemMargin: string = "0px";
+    public itemPadding: string = "0px";
+    public itemForegroundColor: string = "#ffffff";
+
+    private parseType<T extends string | number | boolean>(key: T, value?: string): T | undefined {
+        if (value === "false") {
+            return false as T;
+        }
+        if (value === "true") {
+            return true as T;
+        }
+        if (typeof key === "number") {
+            return Number(value) as T;
+        } else {
+            return value as T;
+        }
+    }
 
     private constructor(data: Partial<Config>) {
         Object.keys(data).forEach(key => {
             if (key in this) {
-                (this as any)[key] = data[key as keyof Config];
+                const objKey = (this as any)[key];
+                const value = data[key as keyof Config] as string | undefined;
+                (this as any)[key] = this.parseType(objKey, value);
             }
         });
         Object.freeze(this);

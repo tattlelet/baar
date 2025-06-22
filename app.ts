@@ -1,14 +1,11 @@
 import "./src/types";
 import { App } from "astal/gtk3"
 import { Baar } from "src/baar";
+import { Handler } from "src/core/handler";
 
-function request_handler(request: string, response: (response: unknown) => void): void {
-    console.log(request, response);
-    response("I dont do anything yet :)");
-}
 
 App.start({
     instanceName: 'baar',
-    requestHandler: request_handler,
+    requestHandler: Handler.requestHandler,
     main: Baar.init,
 });

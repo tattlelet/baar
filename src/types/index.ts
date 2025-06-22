@@ -1,7 +1,7 @@
 import { GLib } from "astal/gobject";
-import * as LoggerModule from "src/util/log";
-import * as AsyncModule from "src/util/async";
-import * as MatcherModule from "src/util/matcher";
+import * as LoggerModule from "src/core/log";
+import * as AsyncModule from "src/core/async";
+import * as MatcherModule from "src/core/matcher";
 
 declare global {
     type Nullable<T> = T | null;
@@ -19,6 +19,8 @@ declare global {
     type AbortController = AsyncModule.AbortController;
     var AbortSignal: typeof AsyncModule.AbortSignal;
     type AbortSignal = AsyncModule.AbortSignal;
+    var Atomic: typeof AsyncModule.Atomic;
+    type Atomic<T> = AsyncModule.Atomic<T>;
 
     var wrapIO: typeof MatcherModule.wrapIO;
 
@@ -46,4 +48,5 @@ Object.assign(globalThis, {
     AbortController: AsyncModule.AbortController,
     AbortSignal: AsyncModule.AbortSignal,
     Logger: LoggerModule.Logger,
+    Atomic: AsyncModule.Atomic,
 });

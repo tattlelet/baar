@@ -1,17 +1,62 @@
+button {
+    background-image: none;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    outline: none;
+}
+
+button:hover,
+button:active,
+button:checked,
+button:focus {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
 window.Bar {
     background: transparent;
 
-    centerbox {
+    .bar-box {
         background-color: rgba(red($backgroundColor), green($backgroundColor), blue($backgroundColor), $backgroundOpacity);
         border-radius: $borderRadius;
         margin: $borderMargin;
     }
 
-    button {
-        background-color: #000000;
-        border-radius: 2px;
-        color: $foregroundColor;
-        font-family: $fontFamily, monospace;
+    .bar-section {
+        margin: 0.3em 0em 0.3em 0em;
+    }
+
+    .bar-item {
+        background-color: rgba(red($itemBackgroundColor), green($itemBackgroundColor), blue($itemBackgroundColor), $itemBackgroundOpacity);
+        border-radius: $itemBorderRadius;
+        margin: $itemMargin;
+        padding: $itemPadding;
+        color: $itemForegroundColor;
+        font-family: $fontFamily;
         font-size: $fontSize;
+        font-weight: bold;
+    }
+
+    .bar-timer {
+        
+    }
+
+    .bar-left {
+        margin-left: 1.6em;
+    }
+
+    .bar-right {
+        margin-right: 1.2em;
     }
 }
+
+.calendar {
+    margin-top: 20em;
+}
+
+

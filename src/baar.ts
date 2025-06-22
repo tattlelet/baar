@@ -1,8 +1,9 @@
 import Bar from "./components/Bar";
-import { ConfigSetup, ThemeManager } from "./util/config";
-import { Logger } from "./util/log";
-import { MonitorManager } from "./util/monitor";
-import { Timer } from "./util/timer";
+import Calendar from "./components/Calendar";
+import { ConfigSetup, ThemeManager } from "./core/config";
+import { Logger } from "./core/log";
+import { MonitorManager } from "./core/monitor";
+import { Timer } from "./core/timer";
 
 export class Baar {
     private static logger: Logger = Logger.get(Baar);
@@ -29,6 +30,8 @@ export class Baar {
             initTimer.log((ellapsed, unit) =>
                 Baar.logger.debug(`Bar event monitoring registration ellapsed ${ellapsed}${unit}`)
             );
+
+            await (async () => await Calendar())();
         } catch (err: unknown) {
             Baar.logger.error("I have no clue what happened", err);
         } finally {

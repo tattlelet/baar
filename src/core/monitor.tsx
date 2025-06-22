@@ -81,6 +81,10 @@ export class MonitorManager {
     private hyprlandMap: Map<AstalHyprland.Monitor, LoadedWidget[]> = new Map();
     private gdkMap: Map<Gdk.Monitor, LoadedWidget[]> = new Map();
 
+    public getWidgets(monitor: Gdk.Monitor): LoadedWidget[] {
+        return this.gdkMap.get(monitor)!;
+    }
+
     private constructor() {}
 
     public static instance() {
