@@ -42,8 +42,16 @@ window.Bar {
         font-weight: bold;
     }
 
-    .bar-timer {
-        
+    .cpu-poller {
+        color: #a8cbdc;
+    }
+
+    .gpu-poller {
+        color: #a44e47;
+    }
+
+    .ram-poller {
+        color: #9ea3a8
     }
 
     .bar-left {
@@ -53,10 +61,19 @@ window.Bar {
     .bar-right {
         margin-right: 1.2em;
     }
+
+    .bar-tray {
+        padding: 0em 0.3em 0em 0.3em
+    }
+
+    .tray-item {
+        margin: 0em 0.3em 0em 0.3em
+    }
 }
 
 .calendar {
     margin-top: 20em;
 }
+
 
 

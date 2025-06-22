@@ -1,5 +1,5 @@
-import Bar from "./components/Bar";
-import Calendar from "./components/Calendar";
+import Bar from "./components/bar";
+import Calendar from "./components/calendar";
 import { ConfigSetup, ThemeManager } from "./core/config";
 import { Logger } from "./core/log";
 import { MonitorManager } from "./core/monitor";

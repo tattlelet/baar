@@ -1,8 +1,7 @@
-import { execAsync, readFileAsync, Variable } from "astal";
+import { bind, execAsync, Variable } from "astal";
 import { delimiterSplit } from "src/core/string";
-import { Poller } from "./poller";
+import { fmt, Poller } from "./poller";
 import GTop from "gi://GTop?version=2.0";
-import { Timer } from "src/core/timer";
 
 export interface CpuStats {
     readonly usage?: number;
@@ -67,3 +66,7 @@ export class CpuPoller implements Poller<CpuStats> {
         };
     }
 }
+
+export const CPU_POLLER = bind(new CpuPoller().pollerVariable(1000)).as(
+    cpuStats => `${fmt(cpuStats.usage)}% ${fmt(cpuStats.temp)}󰔄`
+);

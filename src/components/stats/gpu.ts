@@ -1,5 +1,5 @@
-import { execAsync, Variable } from "astal";
-import { Poller } from "./poller";
+import { bind, execAsync, Variable } from "astal";
+import { fmt, Poller } from "./poller";
 
 export interface GpuStats {
     readonly cpuUsage?: number;
@@ -52,3 +52,7 @@ export class GpuPoller implements Poller<GpuStats> {
         };
     }
 }
+
+export const GPU_POLLER = bind(new GpuPoller().pollerVariable(1000)).as(
+    gpuStats => `${fmt(gpuStats.cpuUsage)}% ${fmt(gpuStats.ramUsage)}%  ${gpuStats.temp}󰔄`
+);

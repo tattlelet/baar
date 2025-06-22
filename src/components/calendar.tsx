@@ -114,7 +114,7 @@ export const DateTimeCalendar = (): JSX.Element => {
             <label
                 className={"bar-item bar-timer"}
                 label={bind(systemTime).as(time => {
-                    return time?.format(" 󰸗 %Y-%m-%d  %I:%M:%S %p ") ?? "";
+                    return time?.format("󰸗 %Y-%m-%d  %I:%M:%S %p") ?? "";
                 })}
             />
         </eventbox>

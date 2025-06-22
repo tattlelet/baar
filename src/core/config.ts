@@ -188,8 +188,8 @@ export class Config {
     public itemBackgroundColor: string = "#000000";
     public itemBackgroundOpacity: string = "1";
     public itemBorderRadius: string = "10px";
-    public itemMargin: string = "0px";
-    public itemPadding: string = "0px";
+    public itemMargin: string = "0em 0.1em 0em 0.1em";
+    public itemPadding: string = "0.2em 0.6em 0.2em 0.6em";
     public itemForegroundColor: string = "#ffffff";
 
     private parseType<T extends string | number | boolean>(key: T, value?: string): T | undefined {
