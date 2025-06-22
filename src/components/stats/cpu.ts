@@ -2,6 +2,7 @@ import { execAsync, readFileAsync, Variable } from "astal";
 import { delimiterSplit } from "src/core/string";
 import { Poller } from "./poller";
 import GTop from "gi://GTop?version=2.0";
+import { Timer } from "src/core/timer";
 
 export interface CpuStats {
     readonly usage?: number;
@@ -10,6 +11,9 @@ export interface CpuStats {
 
 export class CpuPoller implements Poller<CpuStats> {
     private static logger: Logger = Logger.get(CpuPoller);
+
+    private static TEMP_REGEX = /^(?:Core 0|Tctl|Package id 0):\s+\+(?<temp>\d+\.\d+)/;
+
     private previousCpuData = new GTop.glibtop_cpu();
     private currentCpuData = new GTop.glibtop_cpu();
 
@@ -35,11 +39,22 @@ export class CpuPoller implements Poller<CpuStats> {
     }
 
     private async temp(): Promise<number | undefined> {
-        const cmd = "sensors | grep -E 'Core 0|Tctl|Package id 0' | grep -Po '\\d+\\.\\d+'";
-        return (await wrapIO(CpuPoller.logger, execAsync(["bash", "-c", cmd]), `Problem running ${cmd}`)).match(
-            v => Number(v),
+        const cmd = "sensors";
+        const content = (await wrapIO(CpuPoller.logger, execAsync(cmd), `Problem running ${cmd}`)).match(
+            v => v || undefined,
             e => undefined
         );
+
+        if (content === undefined) {
+            return undefined;
+        }
+
+        for (const line of delimiterSplit(content, "\n")) {
+            const match = line.match(CpuPoller.TEMP_REGEX);
+            if (match !== null && match.groups !== undefined) {
+                return Number(match.groups.temp);
+            }
+        }
     }
 
     public async stats(): Promise<CpuStats> {

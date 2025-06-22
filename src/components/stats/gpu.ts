@@ -18,7 +18,7 @@ export class GpuPoller implements Poller<GpuStats> {
     public async stats(): Promise<GpuStats> {
         const cmd = "gpustat --json";
 
-        const gpuJson = (await wrapIO(GpuPoller.logger, execAsync(["bash", "-c", cmd]), `Unable to run ${cmd}`)).match(
+        const gpuJson = (await wrapIO(GpuPoller.logger, execAsync(cmd), `Unable to run ${cmd}`)).match(
             v => JSON.parse(v),
             _ => undefined
         );
