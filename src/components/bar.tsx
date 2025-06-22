@@ -27,9 +27,9 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                 </box>
                 <box />
                 <box className="bar-section" halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
-                    <PollerLabel symbol="" className="cpu-poller" poller={CPU_POLLER} />
-                    <PollerLabel symbol="󰢮" className="gpu-poller" poller={GPU_POLLER} />
-                    <PollerLabel symbol="" className="ram-poller" poller={RAM_POLLER} />
+                    <PollerLabel tooltip="CPU Info" symbol="" className="cpu-poller" poller={CPU_POLLER} />
+                    <PollerLabel tooltip="GPU Info" symbol="󰢮" className="gpu-poller" poller={GPU_POLLER} />
+                    <PollerLabel tooltip="RAM Info" symbol="" className="ram-poller" poller={RAM_POLLER} />
                     <SysTray />
                     <DateTimeCalendar />
                     <box className="bar-right" />

@@ -9,11 +9,12 @@ interface PollerLabelProps {
     readonly symbol: string;
     readonly className: string;
     readonly poller: Binding<string>;
+    readonly tooltip: string;
 }
 
 export const PollerLabel = (props: PollerLabelProps): JSX.Element => {
     return (
-        <box className="bar-item">
+        <box className="bar-item" tooltipText={props.tooltip}>
             <label className={props.className} label={`${props.symbol}┃`} />
             <label label={props.poller} />
         </box>
