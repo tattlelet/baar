@@ -1,13 +1,12 @@
 import { App, Astal, Gtk } from "astal/gtk3";
-import { bind } from "astal";
 import { HybridMonitor } from "src/core/monitor";
 import { DateTimeCalendar } from "./calendar";
-import { RAM_POLLER, RamPoller } from "./stats/ram";
-import { GPU_POLLER, GpuPoller } from "./stats/gpu";
+import { RAM_POLLER } from "./stats/ram";
+import { GPU_POLLER } from "./stats/gpu";
 import { CPU_POLLER } from "./stats/cpu";
-import { fmt } from "external/HyprPanel/src/lib/poller/Poller";
-import { SysTray } from "./tray/tray";
+import { SysTray } from "./tray";
 import { PollerLabel } from "./stats/poller";
+import { Workspaces } from "./workspace";
 
 export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullable<JSX.Element>> {
     const { TOP, LEFT, RIGHT } = Astal.WindowAnchor;
@@ -22,8 +21,9 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
             anchor={TOP | LEFT | RIGHT}
         >
             <centerbox className="bar-box">
-                <box>
+                <box className="bar-section" halign={Gtk.Align.START} valign={Gtk.Align.CENTER}>
                     <box className="bar-left" />
+                    <Workspaces />
                 </box>
                 <box />
                 <box className="bar-section" halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>

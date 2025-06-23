@@ -78,6 +78,8 @@ export class MonitorManager {
     private static logger = Logger.get(MonitorManager);
     private static INSTANCE = new MonitorManager();
 
+    private lockedRunner = new LockedRunner();
+
     private hyprlandMap: Map<AstalHyprland.Monitor, LoadedWidget[]> = new Map();
     private gdkMap: Map<Gdk.Monitor, LoadedWidget[]> = new Map();
 
@@ -179,7 +181,8 @@ export class MonitorManager {
 
                 const loadedWidgets = this.gdkMap.get(gdkmonitor);
                 if (loadedWidgets === null) {
-                    MonitorManager.logger.debug(`Could not find widget for monitor ${gdkmonitor} on removal event.`);
+                    MonitorManager.logger.error(`Could not find widget for monitor ${gdkmonitor} on removal event.`);
+                    return;
                 }
 
                 loadedWidgets?.forEach(loadedWidget => {
