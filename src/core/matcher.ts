@@ -41,10 +41,10 @@ export class Err<E> extends Result<never, E> {
 }
 
 export async function wrapIO<T>(logger: Logger, promise: Promise<T>, message: string): Promise<Result<T, unknown>> {
-    try {
-        return new Ok<T>(await promise);
-    } catch (err: unknown) {
-        logger.warn(message, err);
-        return new Err<unknown>(err);
-    }
+    return promise
+        .then(t => new Ok(t))
+        .catch(err => {
+            logger.warn(message, err);
+            return new Err(err);
+        });
 }

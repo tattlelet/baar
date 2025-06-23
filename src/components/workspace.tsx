@@ -36,11 +36,11 @@ export function workspaceClass(
     actives: Hyprland.Workspace[]
 ): string {
     if (workspace === focused) {
-        return "focused";
+        return "ws-active ws-focused";
     } else if (actives.includes(workspace)) {
-        return "active-unfocused";
+        return "ws-active ws-unfocused";
     } else {
-        return "";
+        return "ws-inactive";
     }
 }
 
@@ -68,7 +68,7 @@ export function Workspaces() {
                             </button>
                         </box>
                     ));
-                const baseItems = [<label label={`${toSubscript(index + 1)}`} />, forMonitor];
+                const baseItems = [<label className="ws-monitor-n" label={`${toSubscript(index + 1)}`} />, forMonitor];
                 if (monitors.length !== index + 1) {
                     baseItems.push(<label label="┃" />);
                 }
