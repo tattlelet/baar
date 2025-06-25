@@ -1,10 +1,6 @@
-import { astalify, ConstructProps, Astal, App, Gdk, Widget, Gtk } from "astal/gtk3";
-import { Gtk as GtkL } from "gi://Gtk?version=3.0";
+import { astalify, ConstructProps, Astal, App, Gdk, Gtk } from "astal/gtk3";
 import { bind, GLib, GObject, Variable } from "astal";
-import { Button, EventBox, Revealer, Window } from "astal/gtk3/widget";
-import { HybridMonitor, MonitorManager } from "src/core/monitor";
-import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { Timer } from "src/core/timer";
+import { Revealer } from "astal/gtk3/widget";
 
 /**
  * Calendar component that extends Gtk.Calendar.
@@ -35,56 +31,47 @@ export default async function Calendar(): Promise<JSX.Element> {
     return (
         <window
             name="calendar"
-            className={"calendar"}
+            className="calendar"
             anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.RIGHT}
             visible={false}
-            canFocus={false}
             keymode={Astal.Keymode.ON_DEMAND}
             application={App}
             layer={Astal.Layer.TOP}
-            exclusivity={Astal.Exclusivity.IGNORE}
-            halign={Gtk.Align.FILL}
-            valign={Gtk.Align.FILL}
+            exclusivity={Astal.Exclusivity.NORMAL}
+            onKeyPressEvent={(_, event) => {
+                const [isKey, key] = event.get_keyval();
+                if (isKey && key === Gdk.KEY_Escape) {
+                    App.get_window("calendar")?.set_visible(false);
+                }
+            }}
+            onButtonPressEvent={async (window, event) => {
+                const [isButton, button] = event.get_button();
+                if (isButton && button === Gdk.BUTTON_PRIMARY) {
+                    window.set_focus;
+                }
+            }}
         >
             <revealer
                 transitionType={Gtk.RevealerTransitionType.CROSSFADE}
                 transition_duration={100}
                 setup={(self: Revealer) => {
                     App.connect("window-toggled", app => {
-                        self.revealChild = App.get_window("calendar")!.is_visible() ?? false;
+                        self.revealChild = app.get_window("calendar")!.is_visible() ?? false;
                     });
                 }}
             >
-                <eventbox
-                    vexpand
-                    hexpand
-                    onButtonPressEvent={(window, event) => {
-                        if (event.get_button()[1] === Gdk.BUTTON_PRIMARY) {
-                            ``;
-                            App.toggle_window("calendar");
-                        }
-                    }}
-                    onKeyPressEvent={(window, event) => {
-                        const key = event.get_keyval()[1];
-                        print(key);
-                        if (key === Gdk.KEY_Escape) {
-                            App.get_window("calendar")!.set_visible(false);
-                        }
-                    }}
-                >
-                    <box className={"calendar-container-box"} canFocus={false}>
-                        <CalendarWidget
-                            canFocus={false}
-                            className={"calendar-menu-widget"}
-                            halign={Gtk.Align.FILL}
-                            valign={Gtk.Align.FILL}
-                            showDetails={true}
-                            expand
-                            showDayNames
-                            showHeading
-                        />
-                    </box>
-                </eventbox>
+                <box className={"calendar-container-box"} canFocus={false}>
+                    <CalendarWidget
+                        canFocus={false}
+                        className="calendar-menu-widget"
+                        halign={Gtk.Align.FILL}
+                        valign={Gtk.Align.FILL}
+                        showDetails={true}
+                        expand
+                        showDayNames
+                        showHeading
+                    />
+                </box>
             </revealer>
         </window>
     );
@@ -98,16 +85,13 @@ export const systemTime = Variable(GLib.DateTime.new_now_local()).poll(
 export const DateTimeCalendar = (): JSX.Element => {
     return (
         <eventbox
-            onButtonPressEvent={async (eventbox, event) => {
-                const timer = new Timer();
-                if (event.get_button()[1] === Gdk.BUTTON_PRIMARY) {
-                    const window = App.get_window("calendar")!;
-                    // Perform relative calculation
-                    // window.set_margin_top(80);
-                    // window.set_margin_bottom(1440);
-                    // window.set_margin_left(2260);
-                    // window.set_margin_right(20);
-                    App.toggle_window("calendar");
+            onButtonPressEvent={async (_, event) => {
+                const [isButton, button] = event.get_button();
+                if (isButton && button === Gdk.BUTTON_PRIMARY) {
+                    const window = App.get_window("calendar");
+                    if (window !== null) {
+                        window.set_visible(!window.visible);
+                    }
                 }
             }}
         >
@@ -116,11 +100,8 @@ export const DateTimeCalendar = (): JSX.Element => {
                 label={bind(systemTime).as(time => {
                     return time?.format("󰸗 %Y-%m-%d  %I:%M:%S %p") ?? "";
                 })}
+                tooltipText="Calendar"
             />
         </eventbox>
     );
 };
-
-// Todo: solve issue with x,y in event not including screen
-// Todo: solve issue with subwindow position
-// Todo: solve issue getting the target widget

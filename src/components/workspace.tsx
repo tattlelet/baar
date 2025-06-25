@@ -44,6 +44,7 @@ export function workspaceClass(
     }
 }
 
+// Todo make more pieces static
 export function Workspaces() {
     const v = Variable.derive(
         [bind(hypr, "workspaces"), bind(hypr, "focusedWorkspace"), bind(hypr, "monitors")],
@@ -79,5 +80,9 @@ export function Workspaces() {
         }
     );
 
-    return <box className="bar-item">{bind(v)}</box>;
+    return (
+        <box className="bar-item" tooltipText="Workspace tracker">
+            {bind(v)}
+        </box>
+    );
 }

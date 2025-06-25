@@ -47,7 +47,7 @@ window.Bar {
     }
 
     .gpu-poller {
-        color: #A8DCA8;
+        color: #a9dbbc;
     }
 
     .ram-poller {
@@ -99,8 +99,52 @@ window.Bar {
     }
 }
 
-.calendar {
-    margin-top: 20em;
+window.calendar {
+    .calendar-menu-widget {
+        background-color: rgba(red($itemBackgroundColor), green($itemBackgroundColor), blue($itemBackgroundColor), $itemBackgroundOpacity);
+        border-radius: $itemBorderRadius;
+        color: $itemForegroundColor;
+
+        &:selected {
+            box-shadow:
+                inset 0 -0.5em 0 0 #D55A7A,
+                inset -0.4em -0.3em 0 0 $itemBackgroundColor,
+                inset 0.4em 0 0 0.01em $itemBackgroundColor;
+            color: #D55A7A;
+            border-radius: 0em;
+        }
+
+        &.header {
+            color: #A8DCA8;
+            border-radius: $itemBorderRadius;
+            box-shadow:
+                inset 0 1px 1px #0d121a,
+                inset 0 -1px 1px #22303f;
+        }
+
+        &.button {
+            color: #49c53c;
+        }
+
+        &:hover {
+            color: #a13cc5;
+        }
+
+        &.highlight {
+            color: #b682c1;
+        }
+
+        &:indeterminate {
+            color: transparentize($itemForegroundColor, 0.65);
+        }
+
+        font-size: 1.1em;
+        padding: 0.35em;
+    }
+
+    .calendar-container-box {
+        margin-right: 1.4em;
+    }
 }
 
 
