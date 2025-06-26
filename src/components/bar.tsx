@@ -1,4 +1,4 @@
-import { App, Astal, Gtk } from "astal/gtk3";
+import { App, Astal, Gdk, Gtk } from "astal/gtk3";
 import { HybridMonitor } from "src/core/monitor";
 import { DateTimeCalendar } from "./calendar";
 import { RAM_POLLER } from "./stats/ram";
@@ -9,9 +9,43 @@ import { PollerLabel } from "./stats/poller";
 import { Workspaces } from "./workspace";
 import { KbLayout } from "./kblayout";
 import { TaskBar } from "./taskbar";
+import { GLib, Variable } from "astal";
+import { Box, CenterBox } from "astal/gtk3/widget";
+
+
+// Todo make this less shit
+function getTaskBar(window: Gtk.Window): Gtk.ScrolledWindow {
+    const centerBox = window.get_children()[0] as CenterBox;
+    const firstBox = centerBox.get_children()[0];
+    return (firstBox as Gtk.Box).get_children()[2] as Gtk.ScrolledWindow;
+}
+
+export interface Dimension {
+    readonly width: number;
+    readonly height: number;
+}
+
+function getTaskbarSize(window: Gtk.Window): Dimension {
+    const centerBox = window.get_children()[0] as CenterBox;
+    const [left, mid, right] = centerBox.get_children() as Box[];
+    const taskbar = left.get_children()[2] as Gtk.ScrolledWindow;
+
+    const maxSize = window.get_allocated_width();
+    const leftW = left.get_allocated_width() - taskbar.get_allocated_width();
+    const midW = mid.get_allocated_width();
+    const rightW = right.get_allocated_width();
+
+    const newW = maxSize - leftW - midW - rightW;
+
+    return {
+        width: newW,
+        height: window.get_allocated_height(),
+    };
+}
 
 export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullable<JSX.Element>> {
     const { TOP, LEFT, RIGHT } = Astal.WindowAnchor;
+    const activeX = new Variable(0);
 
     return (
         <window
@@ -21,6 +55,27 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
             gdkmonitor={hybridMonitor.gdkMonitor}
             exclusivity={Astal.Exclusivity.EXCLUSIVE}
             anchor={TOP | LEFT | RIGHT}
+            setup={self => {
+                const taskbar = getTaskBar(self);
+
+                GLib.idle_add(
+                    GLib.PRIORITY_LOW,
+                    ((activeX: any, taskbar: any) => {
+                        if (activeX.get() === taskbar.get_allocated_width()) {
+                            return GLib.SOURCE_CONTINUE;
+                        }
+
+                        taskbar.set_size_request(activeX.get(), taskbar.get_allocated_height());
+                        taskbar.queue_resize();
+
+                        return GLib.SOURCE_CONTINUE;
+                    }).bind(null, activeX, taskbar)
+                );
+
+                self.connect_after("size-allocate", (_, event) => {
+                    activeX.set(getTaskbarSize(self).width);
+                });
+            }}
         >
             <centerbox className="bar-box">
                 <box className="bar-section" halign={Gtk.Align.START} valign={Gtk.Align.CENTER}>
@@ -28,7 +83,7 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                     <Workspaces />
                     <TaskBar hybridMonitor={hybridMonitor} />
                 </box>
-                <box />
+                <box className="bar-section" />
                 <box className="bar-section" halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
                     <PollerLabel tooltip="CPU Info" symbol="" className="cpu-poller" poller={CPU_POLLER} />
                     <PollerLabel tooltip="GPU Info" symbol="󰢮" className="gpu-poller" poller={GPU_POLLER} />
