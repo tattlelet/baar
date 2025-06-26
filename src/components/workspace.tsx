@@ -36,11 +36,11 @@ export function workspaceClass(
     actives: Hyprland.Workspace[]
 ): string {
     if (workspace === focused) {
-        return "ws-active ws-focused";
+        return "ws-tracker ws-active ws-focused";
     } else if (actives.includes(workspace)) {
-        return "ws-active ws-unfocused";
+        return "ws-tracker ws-active ws-unfocused";
     } else {
-        return "ws-inactive";
+        return "ws-tracker ws-inactive";
     }
 }
 
@@ -76,7 +76,7 @@ export function Workspaces() {
                 return baseItems;
             });
 
-            return [<label label="󰘔⁝ " />, ...jsxRemaining];
+            return [<label label="󰘔⁝ " />, ...jsxRemaining];
         }
     );
 

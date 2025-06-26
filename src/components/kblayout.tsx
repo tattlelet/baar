@@ -1,5 +1,5 @@
 import { bind, execAsync, Variable } from "astal";
-import { Astal } from "astal/gtk3";
+import { Astal, Gtk } from "astal/gtk3";
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { useHook } from "src/core/hookHandler";
 import { escapeRegExp } from "src/core/regex";
@@ -131,7 +131,7 @@ export const KbLayout = (): JSX.Element => {
     return (
         <button
             cursor={"pointer"}
-            className="bar-item"
+            className="bar-item kblayout"
             label={bind(layoutMap).as(layoutMap => layoutMap.symbol || "")}
             tooltipText={bind(layoutMap).as(layoutMap => layoutMap.layout || "")}
             setup={(self): void => {

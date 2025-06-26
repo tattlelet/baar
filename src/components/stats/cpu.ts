@@ -68,5 +68,5 @@ export class CpuPoller implements Poller<CpuStats> {
 }
 
 export const CPU_POLLER = bind(new CpuPoller().pollerVariable(1000)).as(
-    cpuStats => `${fmt(cpuStats.usage)}% ${fmt(cpuStats.temp)}󰔄`
+    cpuStats => `${fmt(cpuStats.usage)}% ${fmt(cpuStats.temp)}󰔄`
 );

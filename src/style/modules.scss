@@ -1,30 +1,18 @@
-button {
-    background-image: none;
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
-    color: inherit;
-    outline: none;
-}
-
+button,
 button:hover,
 button:active,
 button:checked,
 button:focus {
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
+    all: unset;
 }
 
 window.Bar {
     background: transparent;
 
     .bar-box {
-        background-color: rgba(red($backgroundColor), green($backgroundColor), blue($backgroundColor), $backgroundOpacity);
-        border-radius: $borderRadius;
-        margin: $borderMargin;
+        background-color: rgba(red(#1a2433), green(#1a2433), blue(#1a2433), 0.4);
+        border-radius: 0;
+        margin: 0;
     }
 
     .bar-section {
@@ -32,19 +20,19 @@ window.Bar {
     }
 
     .bar-item {
-        background-color: rgba(red($itemBackgroundColor), green($itemBackgroundColor), blue($itemBackgroundColor), $itemBackgroundOpacity);
-        border-radius: $itemBorderRadius;
-        margin: $itemMargin;
-        padding: $itemPadding;
-        color: $itemForegroundColor;
-        font-family: $fontFamily;
-        font-size: $fontSize;
+        background-color: rgba(red(#1a2433), green(#1a2433), blue(#1a2433), 1);
+        border-radius: 0.2em;
+        margin: 0em 0.2em 0em 0.2em;
+        padding: 0.2em 0.6em 0.2em 0.6em;
+        color: #a39e80;
+        font-family: "JetBrainsMono Nerd Font Propo";
+        font-size: 1.2em;
         font-weight: bold;
         background-color: #243448;
         box-shadow:
-            0 2px 0 #16212b,
-            0 3px 6px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 #2c3a56;
+            inset 0 -0.2em 0 #16212b,
+            0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+            inset 0 0.1em 0 #3f5279;
     }
 
     .cpu-poller {
@@ -75,20 +63,34 @@ window.Bar {
         margin: 0em 0.3em 0em 0.3em
     }
 
+    .kblayout {
+        padding: (
+            nth(0.2em 0.6em 0.2em 0.6em, 1) + 0.1em
+            nth(0.2em 0.6em 0.2em 0.6em, 2)
+            nth(0.2em 0.6em 0.2em 0.6em, 3)
+            nth(0.2em 0.6em 0.2em 0.6em, 4)
+        );
+    }
+
+    .ws-tracker {
+        margin: 0em 0.1em 0em 0.1em;
+        padding: 0em 0.2em 0em 0.2em;
+    }
+
     .ws-active {
-        background-color: #121a26;  /* darker than unfocused */
+        background-color: #1a2739;
         box-shadow:
-            0 2px 0 #0e151c,                     /* slightly darker top edge */
-            0 3px 6px rgba(0, 0, 0, 0.6),        /* stronger outer shadow */
-            inset 0 1px 0 #1f2a3a;               /* subtle inner top highlight */
+            inset 0 -0.2em 0 #111c24,
+            0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+            inset 0 0.1em 0 #374862;
     }
 
     .ws-inactive {
-        background-color: #243448;  /* darker than #2b3a4f */
+        background-color: #243448;
         box-shadow:
-            0 2px 0 #16212b,                     /* darker than #1a2433 */
-            0 3px 6px rgba(0, 0, 0, 0.5),       /* stronger shadow */
-            inset 0 1px 0 #2c3a56;               /* darker than #3b4a6a */
+            inset 0 -0.2em 0 #16212b,
+            0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+            inset 0 0.1em 0 #3f5279;
     }
 
     .ws-focused {
@@ -107,45 +109,51 @@ window.Bar {
         margin: 0 0.1em 0 0.1em;
     }
 
-    .task-focused {
-        background-color: #121a26;  /* darker than unfocused */
-        box-shadow:
-            0 2px 0 #0e151c,                     /* slightly darker top edge */
-            0 3px 6px rgba(0, 0, 0, 0.6),        /* stronger outer shadow */
-            inset 0 1px 0 #1f2a3a;               /* subtle inner top highlight */
-    }
-
     .task-unfocused {
         background-color: #243448;
         box-shadow:
-            0 2px 0 #16212b,
-            0 3px 6px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 #2c3a56;
+            inset 0 -0.2em 0 #16212b,
+            0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+            inset 0 0.1em 0 #3f5279;
+    }
+
+    .task-focused {
+        background-color: #1a2739;
+        box-shadow:
+            inset 0 -0.2em 0 #111c24,
+            0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+            inset 0 0.1em 0 #374862;
     }
 
     .task-ws-n {
-        color: #da50cc;
+        color: #c3b0e1;
+    }
+
+
+    scrolledwindow, * {
+        all: unset;
     }
 }
 
+
 window.calendar {
     .calendar-menu-widget {
-        background-color: rgba(red($itemBackgroundColor), green($itemBackgroundColor), blue($itemBackgroundColor), $itemBackgroundOpacity);
-        border-radius: $itemBorderRadius;
-        color: $itemForegroundColor;
+        background-color: rgba(red(#1a2433), green(#1a2433), blue(#1a2433), 1);
+        border-radius: 0.2em;
+        color: #a39e80;
 
         &:selected {
             box-shadow:
                 inset 0 -0.5em 0 0 #D55A7A,
-                inset -0.4em -0.3em 0 0 $itemBackgroundColor,
-                inset 0.4em 0 0 0.01em $itemBackgroundColor;
+                inset -0.4em -0.3em 0 0 #1a2433,
+                inset 0.4em 0 0 0.01em #1a2433;
             color: #D55A7A;
             border-radius: 0em;
         }
 
         &.header {
             color: #A8DCA8;
-            border-radius: $itemBorderRadius;
+            border-radius: 0.2em;
             box-shadow:
                 inset 0 1px 1px #0d121a,
                 inset 0 -1px 1px #22303f;
@@ -164,7 +172,7 @@ window.calendar {
         }
 
         &:indeterminate {
-            color: transparentize($itemForegroundColor, 0.65);
+            color: transparentize(#a39e80, 0.65);
         }
 
         font-size: 1.1em;

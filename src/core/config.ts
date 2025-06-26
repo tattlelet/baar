@@ -10,6 +10,7 @@ export class ThemeManager {
 
     private currentConfig = new Atomic<Readonly<Config> | undefined>(undefined);
     private readonly reloader = new LockedRunner();
+    private readonly watchPaths: string[];
 
     private constructor(
         private readonly configPath = CONFIG_FILE,
@@ -18,7 +19,9 @@ export class ThemeManager {
         private readonly combinedSCSSPath: string = `${TMP}/combined.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
-    ) {}
+    ) {
+        this.watchPaths = [configPath, ...scssPaths];
+    }
 
     public async getConfig(): Promise<Result<Readonly<Config>, undefined>> {
         const config = this.currentConfig.get();
@@ -123,7 +126,7 @@ export class ThemeManager {
     public startMonitors(): void {
         this.monitors =
             this.monitors ??
-            [this.configPath].map(path =>
+            this.watchPaths.map(path =>
                 monitorFile(path, (file: string, event: Gio.FileMonitorEvent): void =>
                     Config.defaultHandler(this.syncLoadStyle.bind(this), file, event)
                 )
@@ -176,21 +179,6 @@ export class ConfigParser {
 
 export class Config {
     private static logger = Logger.get(Config);
-
-    public backgroundColor: string = "#000000";
-    public backgroundOpacity: string = "1";
-    public foregroundColor: string = "#ffffff";
-    public borderRadius: string = "0px";
-    public borderMargin: string = "1px";
-    public fontFamily: string = "DejaVuSansM Nerd Font";
-    public fontSize: string = "14px";
-    public weather: boolean = false;
-    public itemBackgroundColor: string = "#000000";
-    public itemBackgroundOpacity: string = "1";
-    public itemBorderRadius: string = "10px";
-    public itemMargin: string = "0em 0.2em 0em 0.2em";
-    public itemPadding: string = "0.2em 0.6em 0.2em 0.6em";
-    public itemForegroundColor: string = "#ffffff";
 
     private parseType<T extends string | number | boolean>(key: T, value?: string): T | undefined {
         if (value === "false") {

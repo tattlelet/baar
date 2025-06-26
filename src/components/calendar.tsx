@@ -90,7 +90,7 @@ export const DateTimeCalendar = (): JSX.Element => {
         <button
             cursor={"pointer"}
             className={"bar-item bar-timer"}
-            label={bind(systemTime).as(time => time?.format("󰸗 %Y-%m-%d  %I:%M:%S %p") ?? "")}
+            label={bind(systemTime).as(time => time?.format("󰸗 %Y-%m-%d  %I:%M:%S %p") ?? "")}
             tooltipText="Calendar"
             onButtonPressEvent={async (_, event) => {
                 const [isButton, button] = event.get_button();
