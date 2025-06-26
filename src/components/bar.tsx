@@ -8,6 +8,7 @@ import { SysTray } from "./tray";
 import { PollerLabel } from "./stats/poller";
 import { Workspaces } from "./workspace";
 import { KbLayout } from "./kblayout";
+import { TaskBar } from "./taskbar";
 
 export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullable<JSX.Element>> {
     const { TOP, LEFT, RIGHT } = Astal.WindowAnchor;
@@ -25,6 +26,7 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                 <box className="bar-section" halign={Gtk.Align.START} valign={Gtk.Align.CENTER}>
                     <box className="bar-left" />
                     <Workspaces />
+                    <TaskBar hybridMonitor={hybridMonitor} />
                 </box>
                 <box />
                 <box className="bar-section" halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>

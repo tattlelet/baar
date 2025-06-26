@@ -8,7 +8,7 @@ export function activeWorkspaces(monitors: Hyprland.Monitor[]): Hyprland.Workspa
     return monitors.map(monitor => monitor.activeWorkspace).filter(monitor => monitor !== null);
 }
 
-function toSubscript(num: number): string {
+export function toSubscript(num: number): string {
     const subscriptMap: { [key: string]: string } = {
         "0": "₀",
         "1": "₁",

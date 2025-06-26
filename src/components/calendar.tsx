@@ -27,6 +27,7 @@ class CalendarWidget extends astalify(Gtk.Calendar) {
 // Todo: abstract revealer
 // Todo: abstract basic clickable dropdown
 // Todo: configure calendar
+// Todo: there's no button cursor for month and year buttons
 export default async function Calendar(): Promise<JSX.Element> {
     return (
         <window
@@ -60,17 +61,19 @@ export default async function Calendar(): Promise<JSX.Element> {
                     });
                 }}
             >
-                <box className={"calendar-container-box"} canFocus={false}>
-                    <CalendarWidget
-                        canFocus={false}
-                        className="calendar-menu-widget"
-                        halign={Gtk.Align.FILL}
-                        valign={Gtk.Align.FILL}
-                        showDetails={true}
-                        expand
-                        showDayNames
-                        showHeading
-                    />
+                <box className={"calendar-container-box"} vertical valign={Gtk.Align.FILL} canFocus={false}>
+                    <box>
+                        <CalendarWidget
+                            canFocus={false}
+                            className="calendar-menu-widget"
+                            halign={Gtk.Align.FILL}
+                            valign={Gtk.Align.FILL}
+                            showDetails={true}
+                            expand
+                            showDayNames
+                            showHeading
+                        />
+                    </box>
                 </box>
             </revealer>
         </window>
@@ -84,7 +87,11 @@ export const systemTime = Variable(GLib.DateTime.new_now_local()).poll(
 
 export const DateTimeCalendar = (): JSX.Element => {
     return (
-        <eventbox
+        <button
+            cursor={"pointer"}
+            className={"bar-item bar-timer"}
+            label={bind(systemTime).as(time => time?.format("󰸗 %Y-%m-%d  %I:%M:%S %p") ?? "")}
+            tooltipText="Calendar"
             onButtonPressEvent={async (_, event) => {
                 const [isButton, button] = event.get_button();
                 if (isButton && button === Gdk.BUTTON_PRIMARY) {
@@ -94,14 +101,6 @@ export const DateTimeCalendar = (): JSX.Element => {
                     }
                 }
             }}
-        >
-            <label
-                className={"bar-item bar-timer"}
-                label={bind(systemTime).as(time => {
-                    return time?.format("󰸗 %Y-%m-%d  %I:%M:%S %p") ?? "";
-                })}
-                tooltipText="Calendar"
-            />
-        </eventbox>
+        />
     );
 };

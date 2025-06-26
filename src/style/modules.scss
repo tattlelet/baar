@@ -40,6 +40,11 @@ window.Bar {
         font-family: $fontFamily;
         font-size: $fontSize;
         font-weight: bold;
+        background-color: #243448;
+        box-shadow:
+            0 2px 0 #16212b,
+            0 3px 6px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 #2c3a56;
     }
 
     .cpu-poller {
@@ -71,11 +76,11 @@ window.Bar {
     }
 
     .ws-active {
-        background-color: #121a26; /* darker base */
+        background-color: #121a26;  /* darker than unfocused */
         box-shadow:
-            inset 0 3px 5px #0a0f15,             /* stronger top inner shadow */
-            inset 0 -2px 2px #0d121a,            /* deeper bottom inner shadow */
-            inset 0 1px 2px #22303f;             /* subtle inner highlight */
+            0 2px 0 #0e151c,                     /* slightly darker top edge */
+            0 3px 6px rgba(0, 0, 0, 0.6),        /* stronger outer shadow */
+            inset 0 1px 0 #1f2a3a;               /* subtle inner top highlight */
     }
 
     .ws-inactive {
@@ -96,6 +101,30 @@ window.Bar {
 
     .ws-monitor-n {
         color: #a4f1c2
+    }
+
+    .task {
+        margin: 0 0.1em 0 0.1em;
+    }
+
+    .task-focused {
+        background-color: #121a26;  /* darker than unfocused */
+        box-shadow:
+            0 2px 0 #0e151c,                     /* slightly darker top edge */
+            0 3px 6px rgba(0, 0, 0, 0.6),        /* stronger outer shadow */
+            inset 0 1px 0 #1f2a3a;               /* subtle inner top highlight */
+    }
+
+    .task-unfocused {
+        background-color: #243448;
+        box-shadow:
+            0 2px 0 #16212b,
+            0 3px 6px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 #2c3a56;
+    }
+
+    .task-ws-n {
+        color: #da50cc;
     }
 }
 

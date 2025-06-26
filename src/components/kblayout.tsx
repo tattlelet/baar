@@ -116,6 +116,7 @@ export class KbLayoutFinder {
     }
 }
 
+// Cycle layout based on config with button
 export const KbLayout = (): JSX.Element => {
     const variableWritter = async (v: Variable<KbLayoutMapping>, f: () => Promise<KbLayoutMapping>): Promise<void> => {
         v.set(await f());
@@ -128,11 +129,12 @@ export const KbLayout = (): JSX.Element => {
     const hyprlandService = AstalHyprland.get_default();
 
     return (
-        <label
+        <button
+            cursor={"pointer"}
             className="bar-item"
             label={bind(layoutMap).as(layoutMap => layoutMap.symbol || "")}
             tooltipText={bind(layoutMap).as(layoutMap => layoutMap.layout || "")}
-            setup={(self: Astal.Label): void => {
+            setup={(self): void => {
                 useHook(
                     self,
                     hyprlandService,
