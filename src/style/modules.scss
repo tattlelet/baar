@@ -36,7 +36,7 @@ window.Bar {
     }
 
     .poller-item {
-        margin: 0em 0.1em 0em 0.1em;
+        margin: 0em 0.15em 0em 0.15em;
     }
 
     .cpu-poller {
@@ -52,7 +52,8 @@ window.Bar {
     }
 
     .bar-tray {
-        padding: 0em 0.3em 0em 0.3em
+        padding: 0em 0.3em 0em 0.3em;
+        margin-left: 0.3em;
     }
 
     .tray-item {
@@ -132,7 +133,6 @@ window.Bar {
     .task-ws-n {
         color: #2ff4f4;
     }
-
 
     scrolledwindow, * {
         all: unset;
