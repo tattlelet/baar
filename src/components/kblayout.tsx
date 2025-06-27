@@ -4,6 +4,8 @@ import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { useHook } from "src/core/hookHandler";
 import { escapeRegExp } from "src/core/regex";
 
+const logger = Logger.get();
+
 export type HyprctlKeyboard = {
     address: string;
     name: string;
@@ -143,6 +145,26 @@ export const KbLayout = (): JSX.Element => {
                     },
                     "keyboard-layout"
                 );
+            }}
+            onClick={(_, event) => {
+                if (event.button === Astal.MouseButton.PRIMARY || event.button === Astal.MouseButton.SECONDARY) {
+                    try {
+                        const devices: HyprctlDeviceLayout = JSON.parse(hyprlandService.message("j/devices"));
+                        const main = devices.keyboards.find(kb => kb.main);
+
+                        if (main === undefined) {
+                            throw Error("Couldnt get main keyboard");
+                        }
+                        
+                        const direction = event.button === Astal.MouseButton.PRIMARY ? 'next' : "prev";
+
+                        const cmd = `hyprctl switchxkblayout ${main?.name} ${direction}`;
+                        wrapIO(logger, execAsync(cmd), `Failed executing ${cmd}`)
+                    }
+                    catch (err) {
+                        logger.warn("Failed to switch kb layout", err);
+                    }
+                }
             }}
         />
     );
