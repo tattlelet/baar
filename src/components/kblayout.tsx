@@ -155,13 +155,12 @@ export const KbLayout = (): JSX.Element => {
                         if (main === undefined) {
                             throw Error("Couldnt get main keyboard");
                         }
-                        
-                        const direction = event.button === Astal.MouseButton.PRIMARY ? 'next' : "prev";
+
+                        const direction = event.button === Astal.MouseButton.PRIMARY ? "next" : "prev";
 
                         const cmd = `hyprctl switchxkblayout ${main?.name} ${direction}`;
-                        wrapIO(logger, execAsync(cmd), `Failed executing ${cmd}`)
-                    }
-                    catch (err) {
+                        wrapIO(logger, execAsync(cmd), `Failed executing ${cmd}`);
+                    } catch (err) {
                         logger.warn("Failed to switch kb layout", err);
                     }
                 }

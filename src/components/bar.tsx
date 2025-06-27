@@ -11,12 +11,13 @@ import { KbLayout } from "./kblayout";
 import { TaskBar } from "./taskbar";
 import { GLib, Variable } from "astal";
 import { Box, CenterBox } from "astal/gtk3/widget";
+import { PowerMenuButton } from "./powermenu";
 
 // Todo make this less shit
 function getTaskBar(window: Gtk.Window): Gtk.ScrolledWindow {
     const centerBox = window.get_children()[0] as CenterBox;
     const firstBox = centerBox.get_children()[0];
-    return (firstBox as Gtk.Box).get_children()[2] as Gtk.ScrolledWindow;
+    return (firstBox as Gtk.Box).get_children()[3] as Gtk.ScrolledWindow;
 }
 
 export interface Dimension {
@@ -27,7 +28,7 @@ export interface Dimension {
 function getTaskbarSize(window: Gtk.Window): Dimension {
     const centerBox = window.get_children()[0] as CenterBox;
     const [left, mid, right] = centerBox.get_children() as Box[];
-    const taskbar = left.get_children()[2] as Gtk.ScrolledWindow;
+    const taskbar = getTaskBar(window);
 
     const maxSize = window.get_allocated_width();
     const leftW = left.get_allocated_width() - taskbar.get_allocated_width();
@@ -79,6 +80,7 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
             <centerbox className="bar-box">
                 <box className="bar-section" halign={Gtk.Align.START} valign={Gtk.Align.CENTER}>
                     <box className="bar-left" />
+                    <PowerMenuButton />
                     <Workspaces />
                     <TaskBar hybridMonitor={hybridMonitor} />
                 </box>
