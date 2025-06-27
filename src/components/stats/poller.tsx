@@ -14,7 +14,7 @@ interface PollerLabelProps {
 
 export const PollerLabel = (props: PollerLabelProps): JSX.Element => {
     return (
-        <box className="bar-item" tooltipText={props.tooltip}>
+        <box className="bar-item poller-item" tooltipText={props.tooltip}>
             <label className={props.className} label={`${props.symbol}┃`} />
             <label label={props.poller} />
         </box>

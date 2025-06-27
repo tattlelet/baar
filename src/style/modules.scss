@@ -35,6 +35,10 @@ window.Bar {
             inset 0 0.1em 0 #3f5279;
     }
 
+    .poller-item {
+        margin: 0em 0.1em 0em 0.1em;
+    }
+
     .cpu-poller {
         color: #a8cbdc;
     }
@@ -47,20 +51,12 @@ window.Bar {
         color: #D67E70;
     }
 
-    .bar-left {
-        margin-left: 1.6em;
-    }
-
-    .bar-right {
-        margin-right: 1.2em;
-    }
-
     .bar-tray {
         padding: 0em 0.3em 0em 0.3em
     }
 
     .tray-item {
-        margin: 0em 0.3em 0em 0.3em
+        margin: 0em 0.2em 0em 0.2em
     }
 
     .kblayout {
@@ -109,24 +105,32 @@ window.Bar {
         margin: 0 0.1em 0 0.1em;
     }
 
+    .taskbox {
+        background-color: rgba(51, 46, 27, 0.6);
+        border-radius: 0.2em;
+        margin-right: 0.1em;
+    }
+
     .task-unfocused {
-        background-color: #243448;
+        background-color: #3b4f63;
         box-shadow:
-            inset 0 -0.2em 0 #16212b,
+            inset 0 -0.2em 0 #283642,
             0 0.2em 0.3em rgba(0, 0, 0, 0.5),
-            inset 0 0.1em 0 #3f5279;
+            inset 0 0.1em 0 #5e7c94;
+        color: #f2e5d5;
     }
 
     .task-focused {
-        background-color: #1a2739;
+        background-color: #9c4f2f;
         box-shadow:
-            inset 0 -0.2em 0 #111c24,
+            inset 0 -0.2em 0 #5c2f1c,
             0 0.2em 0.3em rgba(0, 0, 0, 0.5),
-            inset 0 0.1em 0 #374862;
+            inset 0 0.1em 0 #d47a4d;
+        color: #f2e5d5;
     }
 
     .task-ws-n {
-        color: #c3b0e1;
+        color: #2ff4f4;
     }
 
 

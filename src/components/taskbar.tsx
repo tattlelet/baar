@@ -64,7 +64,7 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
     return result.join(" ");
 }
 
-const MAX_LABEL = 25;
+const MAX_LABEL = 20;
 
 function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
     const foundIcon = IconMap[client.class];
@@ -93,8 +93,12 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
             bind(hyprlandService, "monitors"),
             bind(hyprlandService, "workspaces"),
             bind(hyprlandService, "focusedWorkspace"),
+            bind(hyprlandService, "focusedMonitor"),
+            bind(hyprlandService.focusedClient, "monitor"),
+            bind(hyprlandService.focusedClient, "x"),
+            bind(hyprlandService.focusedClient, "y"),
         ],
-        (clients, focusedClient, monitors, workspaces, focusedWorkspace) => {
+        (clients, focusedClient, ...argv: any[]) => {
             return clients
                 .filter(
                     client =>
@@ -170,7 +174,9 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
                 });
             }}
         >
-            <box orientation={Gtk.Orientation.HORIZONTAL}>{bind(v)}</box>
+            <box className="taskbox" orientation={Gtk.Orientation.HORIZONTAL}>
+                {bind(v)}
+            </box>
         </scrollable>
     );
 };

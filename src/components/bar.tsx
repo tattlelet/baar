@@ -12,7 +12,6 @@ import { TaskBar } from "./taskbar";
 import { GLib, Variable } from "astal";
 import { Box, CenterBox } from "astal/gtk3/widget";
 
-
 // Todo make this less shit
 function getTaskBar(window: Gtk.Window): Gtk.ScrolledWindow {
     const centerBox = window.get_children()[0] as CenterBox;
@@ -85,9 +84,11 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                 </box>
                 <box className="bar-section" />
                 <box className="bar-section" halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
-                    <PollerLabel tooltip="CPU Info" symbol="" className="cpu-poller" poller={CPU_POLLER} />
-                    <PollerLabel tooltip="GPU Info" symbol="󰢮" className="gpu-poller" poller={GPU_POLLER} />
-                    <PollerLabel tooltip="RAM Info" symbol="" className="ram-poller" poller={RAM_POLLER} />
+                    <box className="bar-dashboard">
+                        <PollerLabel tooltip="CPU Info" symbol="" className="cpu-poller" poller={CPU_POLLER} />
+                        <PollerLabel tooltip="GPU Info" symbol="󰢮" className="gpu-poller" poller={GPU_POLLER} />
+                        <PollerLabel tooltip="RAM Info" symbol="" className="ram-poller" poller={RAM_POLLER} />
+                    </box>
                     <SysTray />
                     <KbLayout />
                     <DateTimeCalendar />
