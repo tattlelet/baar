@@ -78,8 +78,6 @@ export class MonitorManager {
     private static logger = Logger.get(MonitorManager);
     private static INSTANCE = new MonitorManager();
 
-    private lockedRunner = new LockedRunner();
-
     private hyprlandMap: Map<AstalHyprland.Monitor, LoadedWidget[]> = new Map();
     private gdkMap: Map<Gdk.Monitor, LoadedWidget[]> = new Map();
 
@@ -168,9 +166,7 @@ export class MonitorManager {
                     }
                 );
             } finally {
-                timer.log((ellapsed, unit) =>
-                    MonitorManager.logger.debug(`Addeding monitor ellapsed ${ellapsed}${unit}`)
-                );
+                MonitorManager.logger.debug(`Addeding monitor ellapsed ${timer.fmtElapsed()}`);
             }
         });
 
@@ -200,9 +196,7 @@ export class MonitorManager {
                     MonitorManager.logger.debug(`All widgets destroyed from ${gdkmonitor}.`);
                 });
             } finally {
-                timer.log((ellapsed, unit) =>
-                    MonitorManager.logger.debug(`Removing monitor ellapsed ${ellapsed}${unit}`)
-                );
+                MonitorManager.logger.debug(`Removing monitor ellapsed ${timer.fmtElapsed()}`);
             }
         });
     }

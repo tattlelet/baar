@@ -1,27 +1,10 @@
-import { execAsync, GObject } from "astal";
-import { astalify, ConstructProps, Gdk, Gtk } from "astal/gtk3";
+import { execAsync } from "astal";
+import { Menu, MenuItem } from "./common/astalified";
+import { Gtk, Gdk } from "astal/gtk3";
+
 
 const logger = Logger.get();
 
-class Menu extends astalify(Gtk.Menu) {
-    static {
-        GObject.registerClass(this);
-    }
-
-    constructor(props: ConstructProps<Menu, Gtk.Menu.ConstructorProps>) {
-        super(props as any);
-    }
-}
-
-class MenuItem extends astalify(Gtk.MenuItem) {
-    static {
-        GObject.registerClass(this);
-    }
-
-    constructor(props: ConstructProps<MenuItem, Gtk.MenuItem.ConstructorProps>) {
-        super(props as any);
-    }
-}
 
 // Todo refactor basic onpress
 export const PowerMenuButton = (): JSX.Element => {
@@ -49,7 +32,7 @@ export const PowerMenuButton = (): JSX.Element => {
             />
             <MenuItem
                 className="power-menu-item"
-                label="󰜉 Restart"
+                label="󰜉 Reboot"
                 onButtonPressEvent={(self, event) => {
                     const [isButton, button] = event.get_button();
                     if (isButton && button === Gdk.BUTTON_PRIMARY) {
@@ -83,7 +66,7 @@ export const PowerMenuButton = (): JSX.Element => {
             }}
         >
             <box className="bar-item power-menu">
-                <label className="power-button" label="󰐥" />
+                <label className="power-button" label="󰐥" tooltipText="Power menu" />
             </box>
         </eventbox>
     );

@@ -17,7 +17,7 @@ export class Handler {
 
     public static restartApp(response: (response: unknown) => void): void {
         Handler.logger.info("Restarting Baar...");
-        const result = GLib.spawn_command_line_async(`ags run app.ts`);
+        const result = GLib.spawn_command_line_async(`ags run app.ts &; disown`);
         if (result) {
             response(new HandlerResponse(0, "Restart ok").encode());
             System.exit(0);

@@ -3,6 +3,7 @@ import { App } from "astal/gtk3";
 import { Logger } from "./log";
 import { Timer } from "./timer";
 import { delimiterSplit } from "./string";
+import { RegexBuilder } from "./regex";
 
 export class ThemeManager {
     private static logger = Logger.get(ThemeManager);
@@ -119,7 +120,7 @@ export class ThemeManager {
         try {
             await this.reloader.sync(this.loadStyle.bind(this));
         } finally {
-            timer.log((ellapsed, unit) => ThemeManager.logger.info(`Config loading ellapsed ${ellapsed}${unit}`));
+            ThemeManager.logger.info(`Config loading ellapsed ${timer.fmtElapsed()}`);
         }
     }
 
@@ -140,17 +141,14 @@ export type Readonly<T> = {
 
 export class ConfigParser {
     private static logger = Logger.get(ConfigParser);
-    private static configLine: RegExp = new RegExp(
-        [
-            "^(",
-            [
-                "(?<emptyLine>\\s*)",
-                "(?<comment>#.+)",
-                "(?<paramKey>[a-zA-Z][a-zA-Z0-9-.]+[a-zA-Z0-9]) +(?<paramValue>[# a-zA-Z0-9-.]+[a-zA-Z0-9])",
-            ].join("|"),
-            ")$",
-        ].join("")
-    );
+    private static configLine: RegExp = RegexBuilder.new()
+        .orRegexes(
+            /(?<emptyLine>\s*)/,
+            /(?<comment>#.+)/,
+            /(?<paramKey>[a-zA-Z][a-zA-Z0-9-.]+[a-zA-Z0-9]) +(?<paramValue>[# a-zA-Z0-9-.]+[a-zA-Z0-9])/
+        )
+        .anchor()
+        .build();
 
     public async parse(content: string): Promise<Readonly<Partial<Config>>> {
         const configMap: { [key: string]: string } = {};

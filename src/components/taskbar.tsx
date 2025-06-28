@@ -2,9 +2,9 @@ import { bind, GLib, Variable } from "astal";
 import Hyprland from "gi://AstalHyprland";
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { HybridMonitor } from "src/core/monitor";
-import { toSubscript } from "./workspace";
 import { Astal, Gdk, Gtk } from "astal/gtk3";
 import { escapeRegExp } from "src/core/regex";
+import { toSubscript } from "src/core/symbols";
 
 const hyprlandService = Hyprland.get_default();
 
