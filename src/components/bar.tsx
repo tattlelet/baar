@@ -51,6 +51,7 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
             application={App}
             gdkmonitor={hybridMonitor.gdkMonitor}
             exclusivity={Astal.Exclusivity.EXCLUSIVE}
+            layer={Astal.Layer.BOTTOM}
             anchor={TOP | LEFT | RIGHT}
             setup={self => {
                 const taskbar = getTaskBar(self);

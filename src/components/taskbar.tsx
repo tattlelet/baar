@@ -144,7 +144,7 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
                         onClick={(self, event) => {
                             if (event.button === Astal.MouseButton.PRIMARY) {
                                 client.focus();
-                            } else if (event.button === Astal.MouseButton.SECONDARY) {
+                            } else if (event.button === Astal.MouseButton.MIDDLE) {
                                 client.kill();
                             }
                         }}
