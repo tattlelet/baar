@@ -2,6 +2,10 @@ export abstract class Result<V, E> {
     public abstract isOk(): this is Ok<V>;
     public abstract isErr(): this is Err<E>;
     public abstract match<R>(okHandler: (v: V) => R, errHandler: (e: E) => R): R;
+    public abstract mapResult<R, ER>(
+        okHandler: (v: V) => Result<R, ER>,
+        errHandler: (e: E) => Result<R, ER>
+    ): Result<R, ER>;
 }
 
 export class Ok<V> extends Result<V, never> {
@@ -20,6 +24,13 @@ export class Ok<V> extends Result<V, never> {
     public match<R>(okHandler: (v: V) => R, errHandler: (e: never) => R): R {
         return okHandler(this.value);
     }
+
+    public mapResult<R, ER>(
+        okHandler: (v: V) => Result<R, ER>,
+        errHandler: (e: never) => Result<R, ER>
+    ): Result<R, ER> {
+        return okHandler(this.value);
+    }
 }
 
 export class Err<E> extends Result<never, E> {
@@ -36,6 +47,13 @@ export class Err<E> extends Result<never, E> {
     }
 
     public match<R>(okHandler: (v: never) => R, errHandler: (e: E) => R): R {
+        return errHandler(this.value);
+    }
+
+    public mapResult<R, ER>(
+        okHandler: (v: never) => Result<R, ER>,
+        errHandler: (e: E) => Result<R, ER>
+    ): Result<R, ER> {
         return errHandler(this.value);
     }
 }

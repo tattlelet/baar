@@ -20,3 +20,13 @@ export class MenuItem extends astalify(Gtk.MenuItem) {
         super(props as any);
     }
 }
+
+export class Calendar extends astalify(Gtk.Calendar) {
+    static {
+        GObject.registerClass(this);
+    }
+
+    constructor(props: ConstructProps<Calendar, Gtk.Calendar.ConstructorProps>) {
+        super(props as any);
+    }
+}

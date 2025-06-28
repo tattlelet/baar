@@ -17,6 +17,7 @@ export class Handler {
 
     public static restartApp(response: (response: unknown) => void): void {
         Handler.logger.info("Restarting Baar...");
+        // this is currently only working if initial PID was running in a dev env
         const result = GLib.spawn_command_line_async(`ags run app.ts &; disown`);
         if (result) {
             response(new HandlerResponse(0, "Restart ok").encode());

@@ -5,9 +5,11 @@ import { HybridMonitor } from "src/core/monitor";
 import { Astal, Gdk, Gtk } from "astal/gtk3";
 import { escapeRegExp } from "src/core/regex";
 import { toSubscript } from "src/core/symbols";
+import { isScrollDown, isScrollUp } from "./common/events";
 
 const hyprlandService = Hyprland.get_default();
 
+// Todo: refactor icons to config
 export interface ClassNameIcon {
     readonly symbol: string;
 }
@@ -28,11 +30,20 @@ const IconMap: Record<string, ClassNameIcon> = {
     discord: {
         symbol: "",
     },
+    "com.discordapp.Discord": {
+        symbol: "",
+    },
     steam: {
         symbol: "",
     },
     mpv: {
         symbol: "",
+    },
+    "org.kde.gwenview": {
+        symbol: "",
+    },
+    "Mullvad VPN": {
+        symbol: "",
     },
 };
 
@@ -42,12 +53,14 @@ const DefaultIcon = (): ClassNameIcon => {
     };
 };
 
+// Todo: refactor trimmers to config
 const TitleTrimRegex: Record<string, (initialClass: string) => RegExp> = {
-    "code-oss": _ => /\ - Code \- OSS/,
+    "code-oss": _ => / \- Code \- OSS/,
+    "com.discordapp.Discord": _ => / \- Discord/,
 };
 
 const DefaultTrimRegex = (initialClass: string): RegExp => {
-    return new RegExp(`(?:\\s*[-—]\\s*)?${escapeRegExp(initialClass)}`, "i");
+    return new RegExp(`(?:\\s*[-—]\\s*)${escapeRegExp(initialClass)}`, "i");
 };
 
 export interface TaskBarProps {
@@ -88,6 +101,7 @@ function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
 const focusedCoordinates = new Variable<(number | null)[]>([null, null]);
 const focusedClinetMonitor = new Variable<Hyprland.Monitor | null>(null);
 
+// Todo: abstract class
 export const TaskBar = (props: TaskBarProps): JSX.Element => {
     const v = Variable.derive(
         [
@@ -127,11 +141,10 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
                     <button
                         cursor={"pointer"}
                         className={getClassName(client, focusedClient)}
-                        onButtonPressEvent={(_, event) => {
-                            const [isButton, button] = event.get_button();
-                            if (isButton && button === Gdk.BUTTON_PRIMARY) {
+                        onClick={(self, event) => {
+                            if (event.button === Astal.MouseButton.PRIMARY) {
                                 client.focus();
-                            } else if (isButton && button === Gdk.BUTTON_MIDDLE) {
+                            } else if (event.button === Astal.MouseButton.SECONDARY) {
                                 client.kill();
                             }
                         }}
@@ -214,34 +227,4 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
             </box>
         </scrollable>
     );
-};
-
-export const isScrollUp = (event: Gdk.Event): boolean => {
-    const [directionSuccess, direction] = event.get_scroll_direction();
-    const [deltaSuccess, , yScroll] = event.get_scroll_deltas();
-
-    if (directionSuccess && direction === Gdk.ScrollDirection.UP) {
-        return true;
-    }
-
-    if (deltaSuccess && yScroll < 0) {
-        return true;
-    }
-
-    return false;
-};
-
-export const isScrollDown = (event: Gdk.Event): boolean => {
-    const [directionSuccess, direction] = event.get_scroll_direction();
-    const [deltaSuccess, , yScroll] = event.get_scroll_deltas();
-
-    if (directionSuccess && direction === Gdk.ScrollDirection.DOWN) {
-        return true;
-    }
-
-    if (deltaSuccess && yScroll > 0) {
-        return true;
-    }
-
-    return false;
 };

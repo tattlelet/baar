@@ -1,17 +1,14 @@
 import { App, Astal, Gdk, Gtk } from "astal/gtk3";
 import { HybridMonitor } from "src/core/monitor";
 import { DateTimeCalendar } from "./calendar";
-import { RAM_POLLER } from "./stats/ram";
-import { GPU_POLLER } from "./stats/gpu";
-import { CPU_POLLER } from "./stats/cpu";
 import { SysTray } from "./tray";
-import { PollerLabel } from "./stats/poller";
 import { Workspaces } from "./workspace";
 import { KbLayout } from "./kblayout";
 import { TaskBar } from "./taskbar";
 import { GLib, Variable } from "astal";
 import { Box, CenterBox } from "astal/gtk3/widget";
 import { PowerMenuButton } from "./powermenu";
+import { PollerLabel, CPU_POLLER, GPU_POLLER, RAM_POLLER } from "./pollerlabel";
 
 // Todo make this less shit
 function getTaskBar(window: Gtk.Window): Gtk.ScrolledWindow {

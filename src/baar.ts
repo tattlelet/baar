@@ -1,5 +1,5 @@
 import Bar from "./components/bar";
-import Calendar from "./components/calendar";
+import CalendarWindow from "./components/calendar";
 import { ConfigSetup, ThemeManager } from "./core/config";
 import { Logger } from "./core/log";
 import { MonitorManager } from "./core/monitor";
@@ -29,7 +29,7 @@ export class Baar {
             monitorManager.registerEvents(Bar);
             Baar.logger.debug(`Bar event monitoring registration ellapsed ${timer.fmtElapsed()}`);
 
-            await (async () => await Calendar())();
+            await (async () => await CalendarWindow())();
         } catch (err: unknown) {
             Baar.logger.error("I have no clue what happened", err);
         } finally {

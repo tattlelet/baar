@@ -95,6 +95,10 @@ export function withTimeout<T extends any[], R extends any>(
     };
 }
 
+export function wrapAsync<T extends any[], R extends any>(f: (...args: T) => R): (...args: T) => Promise<R> {
+    return async (...args: T) => f(...args);
+}
+
 export class Atomic<T extends any> {
     constructor(
         private t: T,

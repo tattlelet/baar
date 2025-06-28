@@ -1,6 +1,6 @@
-import { bind, readFileAsync, Variable } from "astal";
+import { readFileAsync, Variable } from "astal";
 import { delimiterSplit } from "src/core/string";
-import { fmt, Poller } from "./poller";
+import { Poller } from "./poller";
 
 export interface RamStats {
     readonly usage?: number;
@@ -58,5 +58,3 @@ export class RamPoller implements Poller<RamStats> {
         };
     }
 }
-
-export const RAM_POLLER = bind(new RamPoller().pollerVariable(1000)).as(ramStats => `${fmt(ramStats.usage)}%`);

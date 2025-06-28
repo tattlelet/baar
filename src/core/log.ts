@@ -33,6 +33,10 @@ export class Logger {
     }
 
     public static get(c?: ClassIdentifier): Logger {
-        return new Logger(c?.name.substring(1));
+        let name = c?.name;
+        if (name !== undefined && name[0] == "_") {
+            name = name.substring(1);
+        }
+        return new Logger(name);
     }
 }

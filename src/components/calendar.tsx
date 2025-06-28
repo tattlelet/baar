@@ -1,34 +1,15 @@
 import { astalify, ConstructProps, Astal, App, Gdk, Gtk } from "astal/gtk3";
 import { bind, GLib, GObject, Variable } from "astal";
 import { Revealer } from "astal/gtk3/widget";
-
-/**
- * Calendar component that extends Gtk.Calendar.
- *
- * @class Calendar
- * @extends {astalify(Gtk.Calendar)}
- */
-class CalendarWidget extends astalify(Gtk.Calendar) {
-    static {
-        GObject.registerClass(this);
-    }
-
-    /**
-     * Creates an instance of Calendar.
-     * @param props - The properties for the Calendar component.
-     * @memberof Calendar
-     */
-    constructor(props: ConstructProps<CalendarWidget, Gtk.Calendar.ConstructorProps>) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        super(props as any);
-    }
-}
+import { Calendar } from "./common/astalified";
+import { MouseEvents } from "./common/events";
 
 // Todo: abstract revealer
 // Todo: abstract basic clickable dropdown
+// Todo: make it behave like a gtk menu
 // Todo: configure calendar
 // Todo: there's no button cursor for month and year buttons
-export default async function Calendar(): Promise<JSX.Element> {
+export default async function CalendarWindow(): Promise<JSX.Element> {
     return (
         <window
             name="calendar"
@@ -45,12 +26,7 @@ export default async function Calendar(): Promise<JSX.Element> {
                     App.get_window("calendar")?.set_visible(false);
                 }
             }}
-            onButtonPressEvent={async (window, event) => {
-                const [isButton, button] = event.get_button();
-                if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                    window.set_focus;
-                }
-            }}
+            onButtonPressEvent={MouseEvents.onPrimaryHandler(target => target.set_focus())}
         >
             <revealer
                 transitionType={Gtk.RevealerTransitionType.CROSSFADE}
@@ -63,7 +39,7 @@ export default async function Calendar(): Promise<JSX.Element> {
             >
                 <box className={"calendar-container-box"} vertical valign={Gtk.Align.FILL} canFocus={false}>
                     <box>
-                        <CalendarWidget
+                        <Calendar
                             canFocus={false}
                             className="calendar-menu-widget"
                             halign={Gtk.Align.FILL}
@@ -92,15 +68,12 @@ export const DateTimeCalendar = (): JSX.Element => {
             className={"bar-item bar-timer"}
             label={bind(systemTime).as(time => time?.format("󰸗 %-d %b %y  %H:%M:%S") ?? "")}
             tooltipText="Calendar"
-            onButtonPressEvent={async (_, event) => {
-                const [isButton, button] = event.get_button();
-                if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                    const window = App.get_window("calendar");
-                    if (window !== null) {
-                        window.set_visible(!window.visible);
-                    }
+            onButtonPressEvent={MouseEvents.onPrimaryHandler(() => {
+                const window = App.get_window("calendar");
+                if (window !== null) {
+                    window.set_visible(!window.visible);
                 }
-            }}
+            })}
         />
     );
 };

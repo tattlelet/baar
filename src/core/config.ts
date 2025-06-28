@@ -13,6 +13,8 @@ export class ThemeManager {
     private readonly reloader = new LockedRunner();
     private readonly watchPaths: string[];
 
+    // Todo: Add custom symbols file
+    // Todo: Add custom title trimmer file
     private constructor(
         private readonly configPath = CONFIG_FILE,
         private readonly scssPaths: Array<string> = Array.of(`${SRC_DIR}/src/style/modules.scss`),

@@ -1,6 +1,6 @@
-import { bind, execAsync, Variable } from "astal";
+import { execAsync, Variable } from "astal";
 import { delimiterSplit } from "src/core/string";
-import { fmt, Poller } from "./poller";
+import { Poller } from "./poller";
 import GTop from "gi://GTop?version=2.0";
 
 export interface CpuStats {
@@ -66,7 +66,3 @@ export class CpuPoller implements Poller<CpuStats> {
         };
     }
 }
-
-export const CPU_POLLER = bind(new CpuPoller().pollerVariable(1000)).as(
-    cpuStats => `${fmt(cpuStats.usage)}% ${fmt(cpuStats.temp)}󰔄`
-);

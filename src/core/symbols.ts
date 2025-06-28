@@ -19,3 +19,7 @@ export function toSubscript(num: number): string {
         .map(ch => subscriptMap[ch] ?? ch)
         .join("");
 }
+
+export function isAtoZ(charCode: number) {
+    return charCode < 65 || charCode > 90;
+}

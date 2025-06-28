@@ -1,54 +1,40 @@
 import { execAsync } from "astal";
 import { Menu, MenuItem } from "./common/astalified";
 import { Gtk, Gdk } from "astal/gtk3";
+import { MouseEvents } from "./common/events";
 
-
-const logger = Logger.get();
-
-
-// Todo refactor basic onpress
 export const PowerMenuButton = (): JSX.Element => {
+    const logger = Logger.get(PowerMenuButton);
+
     const menu = (
         <Menu halign={Gtk.Align.START} className="power-menu-box">
             <MenuItem
                 className="power-menu-item"
                 label="󰍃 Logout"
-                onButtonPressEvent={(self, event) => {
-                    const [isButton, button] = event.get_button();
-                    if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                        wrapIO(logger, execAsync("hyprctl dispatch exit"), "Failed logout");
-                    }
-                }}
+                onButtonPressEvent={MouseEvents.onPrimaryHandler(() =>
+                    wrapIO(logger, execAsync("hyprctl dispatch exit"), "Failed logout")
+                )}
             />
             <MenuItem
                 className="power-menu-item"
                 label=" Lock"
-                onButtonPressEvent={(self, event) => {
-                    const [isButton, button] = event.get_button();
-                    if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                        wrapIO(logger, execAsync("hyprlock"), "Failed lock");
-                    }
-                }}
+                onButtonPressEvent={MouseEvents.onPrimaryHandler(() =>
+                    wrapIO(logger, execAsync("hyprlock"), "Failed lock")
+                )}
             />
             <MenuItem
                 className="power-menu-item"
                 label="󰜉 Reboot"
-                onButtonPressEvent={(self, event) => {
-                    const [isButton, button] = event.get_button();
-                    if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                        wrapIO(logger, execAsync("systemctl reboot"), "Failed reboot");
-                    }
-                }}
+                onButtonPressEvent={MouseEvents.onPrimaryHandler(() =>
+                    wrapIO(logger, execAsync("systemctl reboot"), "Failed reboot")
+                )}
             />
             <MenuItem
                 className="power-menu-item"
                 label="󰐥 Power off"
-                onButtonPressEvent={(self, event) => {
-                    const [isButton, button] = event.get_button();
-                    if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                        wrapIO(logger, execAsync("systemctl poweroff"), "Failed poweroff");
-                    }
-                }}
+                onButtonPressEvent={MouseEvents.onPrimaryHandler(() =>
+                    wrapIO(logger, execAsync("systemctl poweroff"), "Failed poweroff")
+                )}
             />
         </Menu>
     ) as Gtk.Menu;
@@ -56,14 +42,9 @@ export const PowerMenuButton = (): JSX.Element => {
     return (
         <eventbox
             cursor={"pointer"}
-            onButtonPressEvent={(self, event) => {
-                const [isButton, button] = event.get_button();
-                if (isButton && button === Gdk.BUTTON_PRIMARY) {
-                    if (window !== null) {
-                        (menu as Gtk.Menu).popup_at_widget(self, Gdk.Gravity.NORTH, Gdk.Gravity.SOUTH, null);
-                    }
-                }
-            }}
+            onButtonPressEvent={MouseEvents.onPrimaryHandler(target =>
+                (menu as Gtk.Menu).popup_at_widget(target, Gdk.Gravity.NORTH, Gdk.Gravity.SOUTH, null)
+            )}
         >
             <box className="bar-item power-menu">
                 <label className="power-button" label="󰐥" tooltipText="Power menu" />
