@@ -1,8 +1,8 @@
 import Bar from "./components/bar";
 import CalendarWindow from "./components/calendar";
-import { ConfigSetup, ThemeManager } from "./core/config";
 import { Logger } from "./core/log";
 import { MonitorManager } from "./core/monitor";
+import { ConfigSetup, ThemeManager } from "./core/theme";
 import { Timer } from "./core/timer";
 
 export class Baar {

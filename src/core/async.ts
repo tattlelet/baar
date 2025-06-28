@@ -1,4 +1,3 @@
-import { assert } from "console";
 import { Logger } from "./log";
 
 const logger: Logger = Logger.get(this);
