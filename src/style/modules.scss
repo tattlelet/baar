@@ -33,10 +33,13 @@ menuitem:disabled {
 
 menuitem:hover {
     background-color: #3b4f63;
+    box-shadow:
+        inset 0 -0.2em 0 #283642,
+        0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+        inset 0 0.1em 0 #5e7c94;
     color: #f2e5d5;
     border-radius: 0.2em;
 }
-
 
 
 window.Bar {
@@ -220,9 +223,6 @@ window.calendar {
         padding: 0.35em;
     }
 
-    .calendar-container-box {
-        margin-right: 1.4em;
-    }
 }
 
 

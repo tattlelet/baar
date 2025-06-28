@@ -1,4 +1,4 @@
-import { bind, Variable } from "astal";
+import { bind, GLib, Variable } from "astal";
 import Hyprland from "gi://AstalHyprland";
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { HybridMonitor } from "src/core/monitor";
@@ -85,6 +85,9 @@ function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
     }
 }
 
+const focusedCoordinates = new Variable<(number | null)[]>([null, null]);
+const focusedClinetMonitor = new Variable<Hyprland.Monitor | null>(null);
+
 export const TaskBar = (props: TaskBarProps): JSX.Element => {
     const v = Variable.derive(
         [
@@ -94,9 +97,8 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
             bind(hyprlandService, "workspaces"),
             bind(hyprlandService, "focusedWorkspace"),
             bind(hyprlandService, "focusedMonitor"),
-            bind(hyprlandService.focusedClient, "monitor"),
-            bind(hyprlandService.focusedClient, "x"),
-            bind(hyprlandService.focusedClient, "y"),
+            bind(focusedClinetMonitor),
+            bind(focusedCoordinates),
         ],
         (clients, focusedClient, ...argv: any[]) => {
             return clients
@@ -155,6 +157,39 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
             hscrollbar_policy={Gtk.PolicyType.EXTERNAL}
             vscrollbar_policy={Gtk.PolicyType.NEVER}
             setup={self => {
+                GLib.idle_add(
+                    GLib.PRIORITY_LOW,
+                    ((
+                        focusedCoordinates: Variable<(number | null)[]>,
+                        focusedClinetMonitor: Variable<Hyprland.Monitor | null>
+                    ) => {
+                        const client = hyprlandService.focusedClient;
+                        const oldMonitor = focusedClinetMonitor.get();
+                        const [oldX, oldY] = focusedCoordinates.get();
+
+                        if (hyprlandService.focusedClient !== null) {
+                            const newMonitor = hyprlandService.focusedClient.monitor;
+                            if (oldMonitor !== newMonitor) {
+                                focusedClinetMonitor.set(newMonitor);
+                            }
+
+                            const [newX, newY] = [client.get_x(), client.get_y()];
+                            if (oldX !== newX || oldY !== newY) {
+                                focusedCoordinates.set([newX, newY]);
+                            }
+                        } else {
+                            if (oldMonitor !== null) {
+                                focusedClinetMonitor.set(null);
+                            }
+
+                            if (oldX !== null || oldY !== null) {
+                                focusedCoordinates.set([null, null]);
+                            }
+                        }
+                        return GLib.SOURCE_CONTINUE;
+                    }).bind(null, focusedCoordinates, focusedClinetMonitor)
+                );
+
                 self.connect("scroll-event", (_, event: Gdk.Event) => {
                     const [, , yScroll] = event.get_scroll_deltas();
 

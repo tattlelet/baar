@@ -1,7 +1,6 @@
 import { bind, execAsync, Variable } from "astal";
 import { Astal, Gtk } from "astal/gtk3";
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { useHook } from "src/core/hookHandler";
 import { escapeRegExp } from "src/core/regex";
 
 const logger = Logger.get();
@@ -137,14 +136,8 @@ export const KbLayout = (): JSX.Element => {
             label={bind(layoutMap).as(layoutMap => layoutMap.symbol || "")}
             tooltipText={bind(layoutMap).as(layoutMap => layoutMap.layout || "")}
             setup={(self): void => {
-                useHook(
-                    self,
-                    hyprlandService,
-                    () => {
-                        hookF();
-                    },
-                    "keyboard-layout"
-                );
+                hookF();
+                self.hook(hyprlandService, "keyboard-layout", hookF);
             }}
             onClick={(_, event) => {
                 if (event.button === Astal.MouseButton.PRIMARY || event.button === Astal.MouseButton.SECONDARY) {
