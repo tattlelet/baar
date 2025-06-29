@@ -5,7 +5,7 @@ export function escapeRegExp(str: string): string {
 }
 
 export class RegexBuilder {
-    readonly orPieces: string[] = [];
+    orPieces: string[] = [];
     readonly regexFlags = new Set<string>();
     shouldAnchor: boolean = false;
 
@@ -14,7 +14,7 @@ export class RegexBuilder {
     }
 
     public orStrings(...pieces: string[]): RegexBuilder {
-        this.orPieces.concat(pieces);
+        this.orPieces = this.orPieces.concat(pieces);
         return this;
     }
 
