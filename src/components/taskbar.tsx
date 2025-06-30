@@ -6,52 +6,9 @@ import { Astal, Gdk, Gtk } from "astal/gtk3";
 import { escapeRegExp } from "src/core/regex";
 import { toSubscript } from "src/core/symbols";
 import { isScrollDown, isScrollUp } from "./common/events";
+import { ThemeManager } from "src/core/theme";
 
 const hyprlandService = Hyprland.get_default();
-
-// Todo: refactor icons to config
-export interface ClassNameIcon {
-    readonly symbol: string;
-}
-
-const IconMap: Record<string, ClassNameIcon> = {
-    kitty: {
-        symbol: "",
-    },
-    "code-oss": {
-        symbol: "󰨞",
-    },
-    librewolf: {
-        symbol: "",
-    },
-    nemo: {
-        symbol: "󰝰",
-    },
-    discord: {
-        symbol: "",
-    },
-    "com.discordapp.Discord": {
-        symbol: "",
-    },
-    steam: {
-        symbol: "",
-    },
-    mpv: {
-        symbol: "",
-    },
-    "org.kde.gwenview": {
-        symbol: "",
-    },
-    "Mullvad VPN": {
-        symbol: "",
-    },
-};
-
-const DefaultIcon = (): ClassNameIcon => {
-    return {
-        symbol: "",
-    };
-};
 
 // Todo: refactor trimmers to config
 const TitleTrimRegex: Record<string, (initialClass: string) => RegExp> = {
@@ -79,8 +36,11 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
 
 const MAX_LABEL = 20;
 
+// Todo: expose bindable for symbols and trimmer later
 function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
-    const foundIcon = IconMap[client.class];
+    const symbols = ThemeManager.instace().getSymbols()!;
+
+    const foundIcon = symbols.getSymbol(client);
     let title = client.title;
 
     if (foundIcon !== null) {
@@ -88,7 +48,7 @@ function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
         title = title.replace(regexF(client.initialClass), "");
     }
 
-    title = `${(foundIcon || DefaultIcon()).symbol}: ${title}`;
+    title = `${foundIcon}: ${title}`;
     title = title.replaceAll(" ", " ");
 
     if (title.length <= MAX_LABEL) {

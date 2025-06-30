@@ -52,7 +52,7 @@ export class RegexMatcher {
             return new Err(undefined);
         }
 
-        if (anyOf(toIterator(ensureAll), item => !(item in match.groups!))) {
+        if (anyOf(toIterator(ensureAll), item => !(item in match.groups!) || match.groups![item] === undefined)) {
             return new Err(undefined);
         }
 

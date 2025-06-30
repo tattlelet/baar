@@ -1,30 +1,36 @@
 import { Gio, readFileAsync, writeFileAsync, execAsync, monitorFile, GLib } from "astal";
 import { App } from "astal/gtk3";
-import { Config, toCss } from "./config";
 import { Timer } from "./timer";
+import { ConfigHelper } from "./config/common";
+import { KVConfig, KVConfigParser, toCss } from "./config/kvconfig";
+import { readConfigFile } from "./config/base";
+import { SymbolConfig, SymbolConfigParser } from "./config/symbolconfig";
 
 export class ThemeManager {
     private static logger = Logger.get(ThemeManager);
     private static INSTANCE = new ThemeManager();
 
-    private currentConfig = new Atomic<Readonly<Config> | undefined>(undefined);
+    // Todo: remove atomic, we do implace updates
+    private currentConfig = new Atomic<Readonly<KVConfig> | undefined>(undefined);
+    private currentSymbols: Readonly<SymbolConfig> | undefined;
     private readonly reloader = new LockedRunner();
     private readonly watchPaths: string[];
 
-    // Todo: Add custom symbols file
     // Todo: Add custom title trimmer file
+    // Todo: decouple themem and config and send a signal to theme to be reloaded on config change
     private constructor(
         private readonly configPath = CONFIG_FILE,
+        private readonly symbolsPath = `${GLib.get_user_config_dir()}/baar/symbols`,
         private readonly scssPaths: Array<string> = Array.of(`${SRC_DIR}/src/style/modules.scss`),
         private readonly variablesPath: string = `${TMP}/variables.scss`,
         private readonly combinedSCSSPath: string = `${TMP}/combined.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
     ) {
-        this.watchPaths = [configPath, ...scssPaths];
+        this.watchPaths = [configPath, symbolsPath, ...scssPaths];
     }
 
-    public async getConfig(): Promise<Result<Readonly<Config>, undefined>> {
+    public async getConfig(): Promise<Result<Readonly<KVConfig>, undefined>> {
         const config = this.currentConfig.get();
         if (config === undefined) {
             return new Err(config);
@@ -32,8 +38,16 @@ export class ThemeManager {
         return new Ok(config);
     }
 
-    private async setConfig(config: Readonly<Config>): Promise<void> {
+    public getSymbols(): Readonly<SymbolConfig> | undefined {
+        return this.currentSymbols;
+    }
+
+    private async setConfig(config: Readonly<KVConfig>): Promise<void> {
         this.currentConfig.set(config);
+    }
+
+    private async setSymbols(config: Readonly<SymbolConfig>): Promise<void> {
+        this.currentSymbols = config;
     }
 
     public static instace(): ThemeManager {
@@ -68,7 +82,7 @@ export class ThemeManager {
         );
     }
 
-    private async saveVariables(config: Promise<Readonly<Config>>): Promise<Result<Void, unknown>> {
+    private async saveVariables(config: Promise<Readonly<KVConfig>>): Promise<Result<Void, unknown>> {
         return wrapIO(
             ThemeManager.logger,
             writeFileAsync(this.variablesPath, toCss(await config)),
@@ -95,7 +109,8 @@ export class ThemeManager {
 
     private async loadStyle(): Promise<void> {
         ThemeManager.logger.info("Starting config load");
-        const config = Config.readConfigFile(this.configPath);
+        const config = readConfigFile(KVConfig, new KVConfigParser(), this.configPath);
+        const symbols = readConfigFile(SymbolConfig, new SymbolConfigParser(), this.symbolsPath);
         const savedVariables = this.saveVariables(config);
 
         // // Probably dont have to do this all the time 😊
@@ -105,9 +120,11 @@ export class ThemeManager {
         await combinedFiles;
 
         const doneConfig = await config;
+        const doneSymbols = await symbols;
         (await this.rebuildCss()).match(
             _ => {
                 this.setConfig(doneConfig);
+                this.setSymbols(doneSymbols);
                 App.apply_css(this.endCSSPath, true);
                 ThemeManager.logger.info("Config loaded successfully");
             },
@@ -129,7 +146,7 @@ export class ThemeManager {
             this.monitors ??
             this.watchPaths.map(path =>
                 monitorFile(path, (file: string, event: Gio.FileMonitorEvent): void =>
-                    Config.defaultHandler(this.syncLoadStyle.bind(this), file, event)
+                    ConfigHelper.defaultHandler(this.syncLoadStyle.bind(this), file, event)
                 )
             );
     }
