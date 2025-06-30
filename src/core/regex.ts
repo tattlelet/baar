@@ -4,6 +4,13 @@ export function escapeRegExp(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+export function jsonReplacer(key: string, value: any): any {
+    if (value instanceof RegExp) {
+        return value.toString(); // e.g. "/abc/i"
+    }
+    return value;
+}
+
 export class RegexBuilder {
     orPieces: string[] = [];
     readonly regexFlags = new Set<string>();

@@ -23,7 +23,7 @@ export function workspaceClass(
     }
 }
 
-// Todo make more pieces static
+// Todo: make more pieces static
 export function Workspaces() {
     const v = Variable.derive(
         [bind(hypr, "workspaces"), bind(hypr, "focusedWorkspace"), bind(hypr, "monitors")],
