@@ -81,3 +81,22 @@ export class HyprCtl {
         );
     }
 }
+
+export enum ClientInfoType {
+    CLASS = "class",
+    INITIAL_TITLE = "initial-title",
+    TITLE = "title",
+}
+
+export function getClientInfo(client: AstalHyprland.Client, infoType: ClientInfoType): string | undefined {
+    switch (infoType) {
+        case ClientInfoType.CLASS:
+            return client.class;
+        case ClientInfoType.TITLE:
+            return client.title;
+        case ClientInfoType.INITIAL_TITLE:
+            return client.initialTitle;
+        default:
+            return undefined;
+    }
+}

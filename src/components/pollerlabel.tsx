@@ -19,19 +19,19 @@ export const PollerLabel = (props: PollerLabelProps): JSX.Element => {
     );
 };
 
-export function fmt(v?: number): string {
+export function fmt(v?: number, floatPoint: number = 1, pad: number = 5): string {
     if (v === undefined) {
         return "";
     }
-    return v.toFixed(1).padStart(5, " ");
+    return v.toFixed(floatPoint).padStart(pad, " ");
 }
 
 export const CPU_POLLER = bind(new CpuPoller().pollerVariable(1000)).as(
-    cpuStats => `${fmt(cpuStats.usage)}% ${fmt(cpuStats.temp)}󰔄`
+    cpuStats => `${fmt(cpuStats.usage)}%  ${fmt(cpuStats.temp, 0, 3)}󰔄`
 );
 
 export const GPU_POLLER = bind(new GpuPoller().pollerVariable(1000)).as(
-    gpuStats => `${fmt(gpuStats.cpuUsage)}% ${fmt(gpuStats.ramUsage)}%  ${gpuStats.temp}󰔄`
+    gpuStats => `${fmt(gpuStats.cpuUsage)}% ${fmt(gpuStats.ramUsage)}%  ${fmt(gpuStats.temp, 0, 3)}󰔄`
 );
 
 export const RAM_POLLER = bind(new RamPoller().pollerVariable(1000)).as(ramStats => `${fmt(ramStats.usage)}%`);

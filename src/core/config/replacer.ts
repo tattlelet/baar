@@ -1,0 +1,180 @@
+import AstalHyprland from "gi://AstalHyprland?version=0.1";
+import { enumContainsValue } from "../enum";
+import { ClientInfoType, getClientInfo } from "../hyprclt";
+import { jsonReplacer, RegexMatcher } from "../regex";
+import { ConfigAggregator, ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
+import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
+
+export interface ReplaceConfigRecord {
+    readonly group?: string;
+    readonly infoType: string;
+    readonly matcher: string;
+    readonly replacer: string;
+    readonly replacement?: string;
+}
+
+export interface ReplacerProps {
+    readonly group?: string;
+    readonly infoType: ClientInfoType;
+    readonly infoMatcher: RegExp;
+    readonly replacer: RegExp;
+    readonly replacement?: string;
+}
+
+export interface Replacer extends HasGroup {
+    replace(client: AstalHyprland.Client, title: string): string | undefined;
+}
+
+export class BasicReplacer implements Replacer {
+    private static logger = Logger.get(BasicReplacer);
+
+    constructor(readonly props: ReplacerProps) {}
+
+    public group(): string | undefined {
+        return this.props.group;
+    }
+
+    public replace(client: AstalHyprland.Client, title: string): string | undefined {
+        const info = getClientInfo(client, this.props.infoType);
+        if (info === undefined || !this.props.infoMatcher.test(info)) {
+            return undefined;
+        }
+
+        return title.replace(this.props.replacer, this.props.replacement || "");
+    }
+}
+
+export class ReplacerConfigRecordParser implements ConfigRecordParser<ReplaceConfigRecord> {
+    private static RECORD_REGEX: RegExp = partialConfigMatcher()
+        .orRegexes(
+            /(?:group=(?<group>[^,]+)\s*,\s*)?(?<infoType>[^,]*)\s*,\s*(?<matcher>.+?)\s*,\s*(?<replacer>.+?)(?:(?:\s*,\s*(?<replacement>.+))|$)/
+        )
+        .flags("u")
+        .build();
+
+    parse(line: string): Result<ReplaceConfigRecord, undefined> {
+        return RegexMatcher.matchString(line, ReplacerConfigRecordParser.RECORD_REGEX, "matcher").mapResult(
+            match => {
+                const { group, infoType = ClientInfoType.CLASS, matcher, replacer, replacement } = match.groups!;
+                return new Ok({ group, infoType, matcher, replacer, replacement });
+            },
+            e => new Err(undefined)
+        );
+    }
+}
+
+export class ReplacerConfigTransformer implements ConfigRecordTransformer<ReplaceConfigRecord, Replacer> {
+    transform(configRecord: ReplaceConfigRecord): Result<Replacer, undefined> {
+        if (!enumContainsValue(ClientInfoType, configRecord.infoType)) {
+            return new Err(undefined);
+        }
+
+        const matcher = RegexMatcher.parse(configRecord.matcher).match(
+            regex => regex,
+            e => e
+        );
+
+        if (matcher === undefined) {
+            return new Err(undefined);
+        }
+
+        const replacer = RegexMatcher.parse(configRecord.replacer).match(
+            regex => regex,
+            e => e
+        );
+
+        if (replacer === undefined) {
+            return new Err(undefined);
+        }
+
+        return new Ok(
+            new BasicReplacer({
+                group: configRecord.group,
+                infoType: configRecord.infoType as ClientInfoType,
+                infoMatcher: matcher,
+                replacer: replacer,
+                replacement: configRecord.replacement,
+            })
+        );
+    }
+}
+
+export class ChainedReplacer implements Replacer {
+    constructor(
+        private readonly replacers: Replacer[],
+        private readonly thisGroup?: string
+    ) {}
+
+    public group(): string | undefined {
+        return this.thisGroup;
+    }
+
+    public replace(client: AstalHyprland.Client, title: string): string | undefined {
+        for (const replacer of this.replacers) {
+            const newTitle = replacer.replace(client, title);
+            if (newTitle !== undefined) {
+                title = newTitle;
+            }
+        }
+        return title;
+    }
+}
+
+export class ReplacerConfigParser extends ConfigParser<ReplaceConfigRecord, Replacer, Replacer[]> {
+    public static logger: Logger = Logger.get(ReplacerConfigParser);
+
+    constructor() {
+        super(
+            ReplacerConfigParser.logger,
+            new ReplacerConfigRecordParser(),
+            new ReplacerConfigTransformer(),
+            new GroupAggregator<Replacer>(ChainedReplacer)
+        );
+    }
+}
+
+export class ReplacerConfig {
+    private static logger = Logger.get(ReplacerConfig);
+
+    // Todo: Globals inside replacer arent applying to defaults
+    private static defaultReplacement(): Replacer[] {
+        return [
+            new BasicReplacer({
+                infoType: ClientInfoType.CLASS,
+                infoMatcher: /.*/,
+                replacer: /\s/g,
+                replacement: " ",
+            }),
+            new BasicReplacer({
+                infoType: ClientInfoType.CLASS,
+                infoMatcher: /.*/,
+                replacer: /(?:\s*[-—]\s*)\w+$/i,
+            }),
+        ];
+    }
+
+    private readonly replacers: Replacer[];
+
+    constructor(replacers: Replacer[]) {
+        this.replacers = replacers.concat(ReplacerConfig.defaultReplacement());
+        ReplacerConfig.logger.debug("End config:", JSON.stringify(this, jsonReplacer, 2));
+    }
+
+    public replace(client: AstalHyprland.Client): string {
+        let title = client.title;
+        for (const replacer of this.replacerIterator()) {
+            const newTitle = replacer.replace(client, title);
+            if (newTitle !== undefined) {
+                title = newTitle;
+            }
+        }
+
+        return title;
+    }
+
+    private *replacerIterator(): Generator<Replacer> {
+        for (const matcher of this.replacers) {
+            yield matcher;
+        }
+    }
+}

@@ -29,6 +29,43 @@ export class RecordAggregator<K extends keyof any, V> implements ConfigAggregato
     }
 }
 
+export interface HasGroup {
+    group(): string | undefined;
+}
+
+export class GroupAggregator<T extends HasGroup> implements ConfigAggregator<T, T[]> {
+    constructor(private readonly chainFactory: new (agg: T[], group?: string) => T) {}
+
+    aggregate(results: T[]): T[] {
+        const groupMatchers = results.filter(
+            replacer => replacer.group() !== undefined && replacer.group() !== "global"
+        );
+        const globalMatchers = results.filter(
+            replacer => replacer.group() !== undefined && replacer.group() === "global"
+        );
+        const remaining = results.filter(
+            matcher => !groupMatchers.includes(matcher) && !globalMatchers.includes(matcher)
+        );
+
+        const chainedMatchers = Object.entries(
+            groupMatchers.reduce(
+                (acc, matcher) => {
+                    let matchers: T[] = [];
+                    if (matcher.group()! in acc) {
+                        matchers = acc[matcher.group()!];
+                    }
+                    matchers.push(matcher);
+                    acc[matcher.group()!] = matchers;
+                    return acc;
+                },
+                {} as Record<string, T[]>
+            )
+        ).map(([group, matchers]) => new this.chainFactory(matchers, group));
+
+        return chainedMatchers.concat(remaining).concat(globalMatchers);
+    }
+}
+
 export class NoopTransformer<R> implements ConfigRecordTransformer<R, R> {
     public transform(configRecord: R): Result<R, undefined> {
         throw new Ok(configRecord);

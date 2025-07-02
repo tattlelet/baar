@@ -10,16 +10,6 @@ import { ThemeManager } from "src/core/theme";
 
 const hyprlandService = Hyprland.get_default();
 
-// Todo: refactor trimmers to config
-const TitleTrimRegex: Record<string, (initialClass: string) => RegExp> = {
-    "code-oss": _ => / \- Code \- OSS/,
-    "com.discordapp.Discord": _ => / \- Discord/,
-};
-
-const DefaultTrimRegex = (initialClass: string): RegExp => {
-    return new RegExp(`(?:\\s*[-—]\\s*)${escapeRegExp(initialClass)}`, "i");
-};
-
 export interface TaskBarProps {
     readonly hybridMonitor: HybridMonitor;
 }
@@ -34,6 +24,7 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
     return result.join(" ");
 }
 
+// Todo: read this from config
 const MAX_LABEL = 20;
 
 // Todo: expose bindable for symbols and trimmer later
@@ -43,13 +34,10 @@ function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
     const foundIcon = symbols.getSymbol(client);
     let title = client.title;
 
-    if (foundIcon !== null) {
-        const regexF = TitleTrimRegex[client.class] || DefaultTrimRegex;
-        title = title.replace(regexF(client.initialClass), "");
-    }
+    const replacer = ThemeManager.instace().getReplacer()!;
+    title = replacer.replace(client);
 
     title = `${foundIcon}: ${title}`;
-    title = title.replaceAll(" ", " ");
 
     if (title.length <= MAX_LABEL) {
         label.label = title;

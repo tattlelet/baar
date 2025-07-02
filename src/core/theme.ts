@@ -5,29 +5,31 @@ import { ConfigHelper } from "./config/common";
 import { KVConfig, KVConfigParser, toCss } from "./config/kvconfig";
 import { readConfigFile } from "./config/base";
 import { SymbolConfig, SymbolConfigParser } from "./config/symbolconfig";
+import { ReplacerConfig, ReplacerConfigParser } from "./config/replacer";
 
 export class ThemeManager {
     private static logger = Logger.get(ThemeManager);
     private static INSTANCE = new ThemeManager();
 
-    // Todo: remove atomic, we do implace updates
+    // Todo: remove atomic, we do inplace updates
     private currentConfig = new Atomic<Readonly<KVConfig> | undefined>(undefined);
     private currentSymbols: Readonly<SymbolConfig> | undefined;
+    private currentReplacer: Readonly<ReplacerConfig> | undefined;
     private readonly reloader = new LockedRunner();
     private readonly watchPaths: string[];
 
-    // Todo: Add custom title trimmer file
-    // Todo: decouple themem and config and send a signal to theme to be reloaded on config change
+    // Todo: decouple theme and config and send a signal to theme to be reloaded on config change
     private constructor(
         private readonly configPath = CONFIG_FILE,
         private readonly symbolsPath = `${GLib.get_user_config_dir()}/baar/symbols`,
+        private readonly replacerPath = `${GLib.get_user_config_dir()}/baar/replacer`,
         private readonly scssPaths: Array<string> = Array.of(`${SRC_DIR}/src/style/modules.scss`),
         private readonly variablesPath: string = `${TMP}/variables.scss`,
         private readonly combinedSCSSPath: string = `${TMP}/combined.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
     ) {
-        this.watchPaths = [configPath, symbolsPath, ...scssPaths];
+        this.watchPaths = [configPath, symbolsPath, replacerPath, ...scssPaths];
     }
 
     public async getConfig(): Promise<Result<Readonly<KVConfig>, undefined>> {
@@ -42,12 +44,20 @@ export class ThemeManager {
         return this.currentSymbols;
     }
 
+    public getReplacer(): Readonly<ReplacerConfig> | undefined {
+        return this.currentReplacer;
+    }
+
     private async setConfig(config: Readonly<KVConfig>): Promise<void> {
         this.currentConfig.set(config);
     }
 
     private async setSymbols(config: Readonly<SymbolConfig>): Promise<void> {
         this.currentSymbols = config;
+    }
+
+    public async setReplacer(config: Readonly<ReplacerConfig>): Promise<void> {
+        this.currentReplacer = config;
     }
 
     public static instace(): ThemeManager {
@@ -111,6 +121,7 @@ export class ThemeManager {
         ThemeManager.logger.info("Starting config load");
         const config = readConfigFile(KVConfig, new KVConfigParser(), this.configPath);
         const symbols = readConfigFile(SymbolConfig, new SymbolConfigParser(), this.symbolsPath);
+        const replacer = readConfigFile(ReplacerConfig, new ReplacerConfigParser(), this.replacerPath);
         const savedVariables = this.saveVariables(config);
 
         // // Probably dont have to do this all the time 😊
@@ -121,10 +132,12 @@ export class ThemeManager {
 
         const doneConfig = await config;
         const doneSymbols = await symbols;
+        const doneReplacer = await replacer;
         (await this.rebuildCss()).match(
             _ => {
                 this.setConfig(doneConfig);
                 this.setSymbols(doneSymbols);
+                this.setReplacer(doneReplacer);
                 App.apply_css(this.endCSSPath, true);
                 ThemeManager.logger.info("Config loaded successfully");
             },

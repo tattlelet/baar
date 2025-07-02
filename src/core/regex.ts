@@ -53,6 +53,10 @@ export class RegexBuilder {
 }
 
 export class RegexMatcher {
+    private static logger = Logger.get(RegexMatcher);
+
+    private static REGEX_TYPE_MATCHER = /^\/(?<pattern>.*)\/(?<flags>[gimsuy]+)?$/;
+
     public static matchString(s: string, r: RegExp, ...ensureAll: string[]): Result<RegExpMatchArray, undefined> {
         const match = s.match(r);
         if (match === null || match.groups === undefined) {
@@ -64,5 +68,22 @@ export class RegexMatcher {
         }
 
         return new Ok(match);
+    }
+
+    public static parse(matcher: string): Result<RegExp, undefined> {
+        try {
+            return new Ok(
+                RegexMatcher.matchString(matcher, RegexMatcher.REGEX_TYPE_MATCHER, "pattern").match(
+                    matcher => new RegExp(matcher.groups!.pattern, matcher.groups!.flags),
+                    noMatch => {
+                        RegexMatcher.logger.warn(`Provided regex ${matcher} will be treated as a string match`);
+                        return new RegExp(`${escapeRegExp(matcher)}`);
+                    }
+                )
+            );
+        } catch (e) {
+            RegexMatcher.logger.warn(`Bad regex provided: ${matcher}`);
+            return new Err(undefined);
+        }
     }
 }
