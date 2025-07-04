@@ -1,6 +1,6 @@
 import { RegexMatcher } from "../regex";
 import { ConfigRecordParser, ConfigParser } from "./base";
-import { NoopTransformer, RecordAggregator, ConfigHelper, partialConfigMatcher } from "./common";
+import { NoopTransformer, RecordAggregator, partialConfigMatcher } from "./common";
 
 class KVConfigRecordParser implements ConfigRecordParser<[string, string]> {
     private static RECORD_REGEX: RegExp = partialConfigMatcher()
@@ -28,6 +28,8 @@ export class KVConfigParser extends ConfigParser<[string, string], [string, stri
 
 export class KVConfig {
     private static logger = Logger.get(KVConfig);
+
+    public readonly taskbarMaxLength = 20;
 
     private parseType<T extends string | number | boolean>(key: T, value?: string): T | undefined {
         if (value === "false") {

@@ -3,10 +3,9 @@ import Hyprland from "gi://AstalHyprland";
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { HybridMonitor } from "src/core/monitor";
 import { Astal, Gdk, Gtk } from "astal/gtk3";
-import { escapeRegExp } from "src/core/regex";
 import { toSubscript } from "src/core/symbols";
 import { isScrollDown, isScrollUp } from "./common/events";
-import { ThemeManager } from "src/core/theme";
+import { ConfigManager } from "src/core/configmanager";
 
 const hyprlandService = Hyprland.get_default();
 
@@ -24,33 +23,50 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
     return result.join(" ");
 }
 
-// Todo: read this from config
-const MAX_LABEL = 20;
-
-// Todo: expose bindable for symbols and trimmer later
 function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
-    const symbols = ThemeManager.instace().getSymbols()!;
+    const symbols = ConfigManager.instace().symbols.get()!;
 
     const foundIcon = symbols.getSymbol(client);
     let title = client.title;
 
-    const replacer = ThemeManager.instace().getReplacer()!;
+    const replacer = ConfigManager.instace().replacer.get()!;
     title = replacer.replace(client);
 
     title = `${foundIcon}: ${title}`;
 
-    if (title.length <= MAX_LABEL) {
+    const maxLenght = ConfigManager.instace().config.get()!.taskbarMaxLength;
+
+    if (title.length <= maxLenght) {
         label.label = title;
     } else {
-        label.label = title.substring(0, MAX_LABEL - 3) + "...";
+        label.label = title.substring(0, maxLenght - 3) + "...";
     }
 }
 
+// Todo: Refactor this to a global context
 const focusedCoordinates = new Variable<(number | null)[]>([null, null]);
 const focusedClinetMonitor = new Variable<Hyprland.Monitor | null>(null);
 
 // Todo: abstract class
 export const TaskBar = (props: TaskBarProps): JSX.Element => {
+    // Todo: Abstract flip flag
+    const replacerReloaded = new Variable(0);
+    const symbolsReloaded = new Variable(0);
+    // Todo: Make this available in namespace/class etc
+    const taskBarMaxLength = new Variable(ConfigManager.instace().config.get()!.taskbarMaxLength);
+
+    ConfigManager.instace().symbols.onLoadNofity(async () => {
+        replacerReloaded.set(replacerReloaded.get() ^ 1);
+    });
+
+    ConfigManager.instace().replacer.onLoadNofity(async () => {
+        symbolsReloaded.set(symbolsReloaded.get() ^ 1);
+    });
+
+    ConfigManager.instace().config.onLoadNofity(async config => {
+        taskBarMaxLength.set(config.taskbarMaxLength);
+    });
+
     const v = Variable.derive(
         [
             bind(hyprlandService, "clients"),
@@ -61,6 +77,8 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
             bind(hyprlandService, "focusedMonitor"),
             bind(focusedClinetMonitor),
             bind(focusedCoordinates),
+            bind(replacerReloaded),
+            bind(symbolsReloaded),
         ],
         (clients, focusedClient, ...argv: any[]) => {
             return clients

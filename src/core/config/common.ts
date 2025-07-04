@@ -68,7 +68,7 @@ export class GroupAggregator<T extends HasGroup> implements ConfigAggregator<T, 
 
 export class NoopTransformer<R> implements ConfigRecordTransformer<R, R> {
     public transform(configRecord: R): Result<R, undefined> {
-        throw new Ok(configRecord);
+        return new Ok(configRecord);
     }
 }
 

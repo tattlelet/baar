@@ -106,9 +106,7 @@ export class MonitorManager {
                 })
                 .catch(rejectReason => {
                     resolve(
-                        new Err<unknown>(
-                            new Error(`Failed to create widget for monitor ${hybridMonitor}:`, rejectReason)
-                        )
+                        new Err<unknown>(new Error("Failed to create widget for monitor", { cause: rejectReason }))
                     );
                 });
         });
@@ -142,7 +140,7 @@ export class MonitorManager {
                     this.addToCache(loadedWidget);
                 },
                 e => {
-                    MonitorManager.logger.error(e);
+                    MonitorManager.logger.except(e);
                 }
             )
         );
@@ -162,7 +160,7 @@ export class MonitorManager {
                         MonitorManager.logger.debug(`new widget added to ${gdkmonitor}.`);
                     },
                     e => {
-                        MonitorManager.logger.error(e);
+                        MonitorManager.logger.except(e);
                     }
                 );
             } finally {

@@ -1,67 +1,29 @@
-import { Gio, readFileAsync, writeFileAsync, execAsync, monitorFile, GLib } from "astal";
+import { Gio, readFileAsync, writeFileAsync, execAsync, monitorFile } from "astal";
 import { App } from "astal/gtk3";
 import { Timer } from "./timer";
 import { ConfigHelper } from "./config/common";
-import { KVConfig, KVConfigParser, toCss } from "./config/kvconfig";
-import { readConfigFile } from "./config/base";
-import { SymbolConfig, SymbolConfigParser } from "./config/symbolconfig";
-import { ReplacerConfig, ReplacerConfigParser } from "./config/replacer";
+import { ConfigManager } from "./configmanager";
+import { toCss } from "./config/kvconfig";
 
 export class ThemeManager {
     private static logger = Logger.get(ThemeManager);
     private static INSTANCE = new ThemeManager();
 
-    // Todo: remove atomic, we do inplace updates
-    private currentConfig = new Atomic<Readonly<KVConfig> | undefined>(undefined);
-    private currentSymbols: Readonly<SymbolConfig> | undefined;
-    private currentReplacer: Readonly<ReplacerConfig> | undefined;
     private readonly reloader = new LockedRunner();
-    private readonly watchPaths: string[];
 
-    // Todo: decouple theme and config and send a signal to theme to be reloaded on config change
+    public static instace(): ThemeManager {
+        return this.INSTANCE;
+    }
+
     private constructor(
-        private readonly configPath = CONFIG_FILE,
-        private readonly symbolsPath = `${GLib.get_user_config_dir()}/baar/symbols`,
-        private readonly replacerPath = `${GLib.get_user_config_dir()}/baar/replacer`,
         private readonly scssPaths: Array<string> = Array.of(`${SRC_DIR}/src/style/modules.scss`),
         private readonly variablesPath: string = `${TMP}/variables.scss`,
         private readonly combinedSCSSPath: string = `${TMP}/combined.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
     ) {
-        this.watchPaths = [configPath, symbolsPath, replacerPath, ...scssPaths];
-    }
-
-    public async getConfig(): Promise<Result<Readonly<KVConfig>, undefined>> {
-        const config = this.currentConfig.get();
-        if (config === undefined) {
-            return new Err(config);
-        }
-        return new Ok(config);
-    }
-
-    public getSymbols(): Readonly<SymbolConfig> | undefined {
-        return this.currentSymbols;
-    }
-
-    public getReplacer(): Readonly<ReplacerConfig> | undefined {
-        return this.currentReplacer;
-    }
-
-    private async setConfig(config: Readonly<KVConfig>): Promise<void> {
-        this.currentConfig.set(config);
-    }
-
-    private async setSymbols(config: Readonly<SymbolConfig>): Promise<void> {
-        this.currentSymbols = config;
-    }
-
-    public async setReplacer(config: Readonly<ReplacerConfig>): Promise<void> {
-        this.currentReplacer = config;
-    }
-
-    public static instace(): ThemeManager {
-        return this.INSTANCE;
+        const configLoadListener = this.syncLoadStyle.bind(this);
+        ConfigManager.instace().config.onLoadNofity(configLoadListener);
     }
 
     private async allSCSS(): Promise<string[]> {
@@ -92,10 +54,10 @@ export class ThemeManager {
         );
     }
 
-    private async saveVariables(config: Promise<Readonly<KVConfig>>): Promise<Result<Void, unknown>> {
+    private async saveVariables(): Promise<Result<Void, unknown>> {
         return wrapIO(
             ThemeManager.logger,
-            writeFileAsync(this.variablesPath, toCss(await config)),
+            writeFileAsync(this.variablesPath, toCss(await ConfigManager.instace().config.getOrLoad())),
             "Could not write variables scss"
         );
     }
@@ -113,31 +75,15 @@ export class ThemeManager {
         );
     }
 
-    public async apply(): Promise<void> {
-        App.apply_css(this.endCSSPath, true), ThemeManager.logger.info("Config loaded");
-    }
-
     private async loadStyle(): Promise<void> {
-        ThemeManager.logger.info("Starting config load");
-        const config = readConfigFile(KVConfig, new KVConfigParser(), this.configPath);
-        const symbols = readConfigFile(SymbolConfig, new SymbolConfigParser(), this.symbolsPath);
-        const replacer = readConfigFile(ReplacerConfig, new ReplacerConfigParser(), this.replacerPath);
-        const savedVariables = this.saveVariables(config);
-
-        // // Probably dont have to do this all the time 😊
+        ThemeManager.logger.info("Starting css load");
+        const savedVariables = this.saveVariables();
         const combinedFiles = this.writeCombineSCSS();
 
         await savedVariables;
         await combinedFiles;
-
-        const doneConfig = await config;
-        const doneSymbols = await symbols;
-        const doneReplacer = await replacer;
         (await this.rebuildCss()).match(
             _ => {
-                this.setConfig(doneConfig);
-                this.setSymbols(doneSymbols);
-                this.setReplacer(doneReplacer);
                 App.apply_css(this.endCSSPath, true);
                 ThemeManager.logger.info("Config loaded successfully");
             },
@@ -157,31 +103,10 @@ export class ThemeManager {
     public startMonitors(): void {
         this.monitors =
             this.monitors ??
-            this.watchPaths.map(path =>
+            this.scssPaths.map(path =>
                 monitorFile(path, (file: string, event: Gio.FileMonitorEvent): void =>
                     ConfigHelper.defaultHandler(this.syncLoadStyle.bind(this), file, event)
                 )
             );
-    }
-}
-
-export class ConfigSetup {
-    private static logger = Logger.get(ConfigSetup);
-
-    public static run(): void {
-        this.logger.debug(`CONFIG_DIR - ${CONFIG_DIR}`);
-        this.logger.debug(`CONFIG_FILE - ${CONFIG_FILE}`);
-        this.logger.debug(`TMP - ${TMP}`);
-        this.logger.debug(`USER - ${USER}`);
-        this.logger.debug(`SRC_DIR - ${SRC_DIR}`);
-        this.ensureDirectory(TMP);
-    }
-
-    private static ensureDirectory(path: string): void {
-        if (!GLib.file_test(path, GLib.FileTest.EXISTS)) {
-            if (Gio.File.new_for_path(path).make_directory_with_parents(null)) {
-                this.logger.debug(`Path ${path} created`);
-            }
-        }
     }
 }

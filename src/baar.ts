@@ -1,8 +1,9 @@
 import Bar from "./components/bar";
 import CalendarWindow from "./components/calendar";
+import { ConfigManager, ConfigSetup } from "./core/configmanager";
 import { Logger } from "./core/log";
 import { MonitorManager } from "./core/monitor";
-import { ConfigSetup, ThemeManager } from "./core/theme";
+import { ThemeManager } from "./core/theme";
 import { Timer } from "./core/timer";
 
 export class Baar {
@@ -15,11 +16,14 @@ export class Baar {
         try {
             ConfigSetup.run();
             Baar.logger.debug(`ConfigSetup ellapsed ${timer.fmtElapsed()}`);
+            const configManager = ConfigManager.instace();
+            configManager.startMonitors();
+
             const themeManager = ThemeManager.instace();
-            const configLoaded = themeManager.syncLoadStyle();
             themeManager.startMonitors();
 
-            await configLoaded;
+            await configManager.load();
+
             Baar.logger.debug(`Theme initialization ellapsed ${timer.fmtElapsed()}`);
 
             const monitorManager = MonitorManager.instance();
