@@ -4,7 +4,7 @@ import { Replacer, ReplacerConfig, ReplacerConfigParser } from "./config/replace
 import { SymbolConfig, SymbolConfigParser, SymbolTranslator } from "./config/symbolconfig";
 import { ConfigHelper } from "./config/common";
 import { readConfigFile } from "./config/base";
-import { Timer } from "./timer";
+import { Measured } from "./timer";
 import { MonitorWatcherProps } from "./files";
 
 export abstract class ConfigLoader<T> {
@@ -58,25 +58,23 @@ export class DefaultConfigLoader<T> extends ConfigLoader<T> {
 }
 
 export class LockedConfigLoader<T> extends DefaultConfigLoader<T> {
-    private static logger = Logger.get(LockedConfigLoader);
+    private static logger = Logger.get(this);
 
     protected readonly reloader = new LockedRunner();
 
+    @Measured(LockedConfigLoader.logger.debug)
     public async syncLoad(): Promise<void> {
-        const timer = new Timer();
-        try {
-            await this.reloader.sync(this.load.bind(this));
-        } catch (e) {
-            LockedConfigLoader.logger.except(e);
-            throw e;
-        } finally {
-            LockedConfigLoader.logger.info(`Config loading ellapsed ${timer.fmtElapsed()}`);
-        }
+        return this.reloader.sync(this.load.bind(this));
+    }
+
+    @Measured(LockedConfigLoader.logger.debug)
+    public notify(t: T): Promise<void> {
+        return super.notify(t);
     }
 }
 
 export class ConfigManager {
-    private static logger = Logger.get(ConfigManager);
+    private static logger = Logger.get(this);
     private static INSTANCE = new ConfigManager();
 
     readonly config: LockedConfigLoader<KVConfig>;
@@ -147,6 +145,7 @@ export class ConfigManager {
             this.watchersProps.map(watcherProps => monitorFile(watcherProps.path, watcherProps.callback));
     }
 
+    @Measured(ConfigManager.logger.debug)
     public async load(): Promise<void> {
         await Promise.all([this.config.syncLoad(), this.symbols.syncLoad(), this.replacer.syncLoad()]);
     }
@@ -155,6 +154,7 @@ export class ConfigManager {
 export class ConfigSetup {
     private static logger = Logger.get(ConfigSetup);
 
+    @Measured(ConfigSetup.logger.debug)
     public static run(): void {
         this.logger.debug(`CONFIG_DIR - ${CONFIG_DIR}`);
         this.logger.debug(`CONFIG_FILE - ${CONFIG_FILE}`);

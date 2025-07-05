@@ -1,15 +1,17 @@
 import { Gio, readFileAsync, writeFileAsync, execAsync, monitorFile } from "astal";
 import { App } from "astal/gtk3";
-import { Timer } from "./timer";
+import { Measured } from "./timer";
 import { ConfigHelper } from "./config/common";
 import { ConfigManager } from "./configmanager";
 import { toCss } from "./config/kvconfig";
 
 export class ThemeManager {
-    private static logger = Logger.get(ThemeManager);
+    private static logger = Logger.get(this);
     private static INSTANCE = new ThemeManager();
 
     private readonly reloader = new LockedRunner();
+
+    private readonly onCssLoadOnceStack: (() => Promise<void>)[] = [];
 
     public static instace(): ThemeManager {
         return this.INSTANCE;
@@ -21,10 +23,7 @@ export class ThemeManager {
         private readonly combinedSCSSPath: string = `${TMP}/combined.scss`,
         private readonly endCSSPath: string = `${TMP}/baar.css`,
         private monitors?: Gio.FileMonitor[]
-    ) {
-        const configLoadListener = this.syncLoadStyle.bind(this);
-        ConfigManager.instace().config.onLoadNofity(configLoadListener);
-    }
+    ) {}
 
     private async allSCSS(): Promise<string[]> {
         const results = Promise.all(
@@ -86,18 +85,31 @@ export class ThemeManager {
             _ => {
                 App.apply_css(this.endCSSPath, true);
                 ThemeManager.logger.info("Config loaded successfully");
+                this.notify();
             },
             _ => _
         );
     }
 
-    public async syncLoadStyle(): Promise<void> {
-        const timer = new Timer();
-        try {
-            await this.reloader.sync(this.loadStyle.bind(this));
-        } finally {
-            ThemeManager.logger.info(`Config loading ellapsed ${timer.fmtElapsed()}`);
+    public async notify(): Promise<void> {
+        while (this.onCssLoadOnceStack.length > 0) {
+            this.onCssLoadOnceStack.pop()!();
         }
+    }
+
+    @Measured(ThemeManager.logger.debug)
+    public async syncLoadStyle(): Promise<void> {
+        return this.reloader.sync(this.loadStyle.bind(this));
+    }
+
+    public registerListener(): void {
+        ConfigManager.instace().config.onLoadNofity(async () => {
+            this.syncLoadStyle();
+        });
+    }
+
+    public notifyOnceOnLoad(callback: () => Promise<void>): void {
+        this.onCssLoadOnceStack.push(callback);
     }
 
     public startMonitors(): void {

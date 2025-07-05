@@ -1,9 +1,11 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { enumContainsValue } from "../enum";
 import { ClientInfoType, getClientInfo } from "../hyprclt";
-import { jsonReplacer, RegexMatcher } from "../regex";
-import { ConfigAggregator, ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
+import { RegexMatcher } from "../regex";
+import { ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
 import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
+import { Measured } from "../timer";
+import { LogMe } from "../log";
 
 export interface ReplaceConfigRecord {
     readonly group?: string;
@@ -26,8 +28,6 @@ export interface Replacer extends HasGroup {
 }
 
 export class BasicReplacer implements Replacer {
-    private static logger = Logger.get(BasicReplacer);
-
     constructor(readonly props: ReplacerProps) {}
 
     public group(): string | undefined {
@@ -52,7 +52,7 @@ export class ReplacerConfigRecordParser implements ConfigRecordParser<ReplaceCon
         .flags("u")
         .build();
 
-    parse(line: string): Result<ReplaceConfigRecord, undefined> {
+    public parse(line: string): Result<ReplaceConfigRecord, undefined> {
         return RegexMatcher.matchString(line, ReplacerConfigRecordParser.RECORD_REGEX, "matcher").mapResult(
             match => {
                 const { group, infoType = ClientInfoType.CLASS, matcher, replacer, replacement } = match.groups!;
@@ -64,7 +64,7 @@ export class ReplacerConfigRecordParser implements ConfigRecordParser<ReplaceCon
 }
 
 export class ReplacerConfigTransformer implements ConfigRecordTransformer<ReplaceConfigRecord, Replacer> {
-    transform(configRecord: ReplaceConfigRecord): Result<Replacer, undefined> {
+    public transform(configRecord: ReplaceConfigRecord): Result<Replacer, undefined> {
         if (!enumContainsValue(ClientInfoType, configRecord.infoType)) {
             return new Err(undefined);
         }
@@ -121,7 +121,7 @@ export class ChainedReplacer implements Replacer {
 }
 
 export class ReplacerConfigParser extends ConfigParser<ReplaceConfigRecord, Replacer, Replacer[]> {
-    public static logger: Logger = Logger.get(ReplacerConfigParser);
+    public static logger: Logger = Logger.get(this);
 
     constructor() {
         super(
@@ -131,12 +131,17 @@ export class ReplacerConfigParser extends ConfigParser<ReplaceConfigRecord, Repl
             new GroupAggregator<Replacer>(ChainedReplacer)
         );
     }
+
+    @Measured(ReplacerConfigParser.logger.debug)
+    public parse(content?: string): Promise<Replacer[]> {
+        return super.parse(content);
+    }
 }
 
+@LogMe(ReplacerConfig.logger.debug)
 export class ReplacerConfig {
     private static logger = Logger.get(ReplacerConfig);
 
-    // Todo: Globals inside replacer arent applying to defaults
     private static defaultReplacement(): Replacer[] {
         return [
             new BasicReplacer({
@@ -157,7 +162,6 @@ export class ReplacerConfig {
 
     constructor(replacers: Replacer[]) {
         this.replacers = replacers.concat(ReplacerConfig.defaultReplacement());
-        ReplacerConfig.logger.debug("End config:", JSON.stringify(this, jsonReplacer, 2));
     }
 
     public replace(client: AstalHyprland.Client): string {

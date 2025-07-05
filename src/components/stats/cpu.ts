@@ -2,6 +2,7 @@ import { execAsync, Variable } from "astal";
 import { delimiterSplit } from "src/core/string";
 import { Poller } from "./poller";
 import GTop from "gi://GTop?version=2.0";
+import { EagerPoll } from "../common/variable";
 
 export interface CpuStats {
     readonly usage?: number;
@@ -9,7 +10,7 @@ export interface CpuStats {
 }
 
 export class CpuPoller implements Poller<CpuStats> {
-    private static logger: Logger = Logger.get(CpuPoller);
+    private static logger: Logger = Logger.get(this);
 
     private static TEMP_REGEX = /^(?:Core 0|Tctl|Package id 0):\s+\+(?<temp>\d+\.\d+)/;
 
@@ -21,9 +22,8 @@ export class CpuPoller implements Poller<CpuStats> {
         GTop.glibtop_get_cpu(this.currentCpuData);
     }
 
-    public pollerVariable(frequency: number): Variable<CpuStats> {
-        const f = this.stats.bind(this);
-        return new Variable({} as CpuStats).poll(frequency, f);
+    public pollerVariable(frequency: number): Variable<CpuStats | null> {
+        return EagerPoll.create(frequency, this.stats.bind(this));
     }
 
     private async usage(): Promise<number> {

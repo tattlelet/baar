@@ -1,5 +1,7 @@
 import { execAsync, Variable } from "astal";
 import { Poller } from "./poller";
+import { Measured } from "src/core/timer";
+import { EagerPoll } from "../common/variable";
 
 export interface GpuStats {
     readonly cpuUsage?: number;
@@ -10,13 +12,13 @@ export interface GpuStats {
 export class GpuPoller implements Poller<GpuStats> {
     private static logger: Logger = Logger.get(GpuPoller);
 
-    pollerVariable(frequency: number): Variable<GpuStats> {
-        const f = this.stats.bind(this);
-        return Variable({}).poll(frequency, f);
+    public pollerVariable(frequency: number): Variable<GpuStats | null> {
+        return EagerPoll.create(frequency, this.stats.bind(this));
     }
 
+    // Todo: use a different strategy, gpustart is taking 181ms
     public async stats(): Promise<GpuStats> {
-        const cmd = "gpustat --json";
+        const cmd = "gpustat --no-process --json";
 
         const gpuJson = (await wrapIO(GpuPoller.logger, execAsync(cmd), `Unable to run ${cmd}`)).match(
             v => JSON.parse(v),

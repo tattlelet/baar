@@ -1,6 +1,6 @@
 import { App, Gdk } from "astal/gtk3";
 import AstalHyprland from "gi://AstalHyprland";
-import { Timer } from "./timer";
+import { Measured, Timer } from "./timer";
 
 const hyprlandService = AstalHyprland.get_default();
 
@@ -125,6 +125,7 @@ export class MonitorManager {
         }
     }
 
+    @Measured(MonitorManager.logger.debug)
     public async applyOnAllMononitor(
         widgetF: (hybridMonitor: HybridMonitor) => Promise<Nullable<JSX.Element>>
     ): Promise<LoadedWidget[]> {
@@ -148,6 +149,7 @@ export class MonitorManager {
         return loadedWidgets;
     }
 
+    // Todo: Rewrite monitor registration
     public registerEvents(widgetF: (hybridMonitor: HybridMonitor) => Promise<Nullable<JSX.Element>>) {
         App.connect("monitor-added", async (_, gdkmonitor) => {
             const timer = new Timer();

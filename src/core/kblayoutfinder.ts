@@ -2,6 +2,7 @@ import { execAsync } from "astal";
 import { escapeRegExp, RegexMatcher } from "./regex";
 import { HyprCtl, HyprctlKeyboard } from "./hyprclt";
 import { isAtoZ } from "./symbols";
+import { Measured } from "./timer";
 
 export interface KbLayoutMapping {
     readonly symbol: string;
@@ -9,11 +10,19 @@ export interface KbLayoutMapping {
 }
 
 export class KbLayoutFinder {
-    private static readonly logger = Logger.get(KbLayoutFinder);
+    private static readonly logger = Logger.get(this);
     private static readonly ERROR_SYMBOL = "💥";
     private static readonly FLAG_OFFSET = 0x1f1e6;
     private readonly cache: Map<string, string> = new Map();
     private readonly hyprctl: HyprCtl = HyprCtl.instance();
+
+    private static INSTANCE = new KbLayoutFinder();
+
+    public static instace(): KbLayoutFinder {
+        return this.INSTANCE;
+    }
+
+    private constructor() {}
 
     private async layout(): Promise<Result<string, unknown>> {
         return (await this.hyprctl.mainKeyboard()).mapResult(
@@ -61,6 +70,7 @@ export class KbLayoutFinder {
         );
     }
 
+    @Measured(KbLayoutFinder.logger.debug)
     public async layoutSymbol(): Promise<KbLayoutMapping> {
         return await (
             await this.layout()

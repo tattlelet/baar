@@ -28,7 +28,7 @@ export type HyprctlDeviceLayout = {
     switches: unknown[];
 };
 
-export type SWITCH_KB_OPTIONS = "next" | "prev";
+export type SwitchKeyboardOptions = "next" | "prev";
 
 export class HyprCtl {
     private static logger: Logger = Logger.get(HyprCtl);
@@ -69,7 +69,7 @@ export class HyprCtl {
         return JSON.parse(this.hyprlandService.message("j/devices")) as HyprctlDeviceLayout;
     }
 
-    public async switchKbLayout(direction: SWITCH_KB_OPTIONS): Promise<void> {
+    public async switchKbLayout(direction: SwitchKeyboardOptions): Promise<void> {
         (await this.mainKeyboard()).match(
             main => {
                 const cmd = `hyprctl switchxkblayout ${main.name} ${direction}`;

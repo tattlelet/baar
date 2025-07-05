@@ -1,9 +1,11 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { RegexMatcher, escapeRegExp, jsonReplacer } from "../regex";
+import { RegexMatcher } from "../regex";
 import { ConfigRecordParser, ConfigRecordTransformer, ConfigParser, ConfigAggregator } from "./base";
 import { GroupAggregator, HasGroup, partialConfigMatcher, ReadonlyAggregator } from "./common";
 import { enumContainsValue } from "../enum";
 import { ClientInfoType, getClientInfo } from "../hyprclt";
+import { Measured } from "../timer";
+import { LogMe } from "../log";
 
 export interface SymbolConfigRecord {
     readonly group?: string;
@@ -24,8 +26,7 @@ export interface SymbolTranslator extends HasGroup {
 }
 
 export class SymbolMatcher implements SymbolTranslator {
-    private static logger = Logger.get(SymbolMatcher);
-
+    private static logger = Logger.get(this);
     constructor(readonly props: SymbolMatcherProps) {}
 
     public group(): string | undefined {
@@ -67,7 +68,7 @@ export class SymbolConfigRecordParser implements ConfigRecordParser<SymbolConfig
         .flags("u")
         .build();
 
-    parse(line: string): Result<SymbolConfigRecord, undefined> {
+    public parse(line: string): Result<SymbolConfigRecord, undefined> {
         return RegexMatcher.matchString(line, SymbolConfigRecordParser.RECORD_REGEX, "matcher", "symbol").mapResult(
             match => {
                 const { group, infoType = ClientInfoType.CLASS, matcher, symbol } = match.groups!;
@@ -79,7 +80,7 @@ export class SymbolConfigRecordParser implements ConfigRecordParser<SymbolConfig
 }
 
 export class SymbolConfigTransformer implements ConfigRecordTransformer<SymbolConfigRecord, SymbolTranslator> {
-    private static logger: Logger = Logger.get(SymbolConfigTransformer);
+    private static logger: Logger = Logger.get(this);
 
     transform(configRecord: SymbolConfigRecord): Result<SymbolMatcher, undefined> {
         if (!enumContainsValue(ClientInfoType, configRecord.infoType)) {
@@ -117,8 +118,14 @@ export class SymbolConfigParser extends ConfigParser<SymbolConfigRecord, SymbolT
             new GroupAggregator(ChainedMatcher)
         );
     }
+
+    @Measured(SymbolConfigParser.logger.debug)
+    public parse(content?: string): Promise<SymbolTranslator[]> {
+        return super.parse(content);
+    }
 }
 
+@LogMe(SymbolConfig.logger.debug)
 export class SymbolConfig {
     private static logger = Logger.get(SymbolConfig);
 
@@ -181,7 +188,6 @@ export class SymbolConfig {
 
     constructor(symbolMatchers: SymbolTranslator[]) {
         this.symbolMatchers = symbolMatchers.concat(SymbolConfig.defaultSymbols());
-        SymbolConfig.logger.debug("End config:", JSON.stringify(this, jsonReplacer, 2));
     }
 
     public getSymbol(client: AstalHyprland.Client): string {

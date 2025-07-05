@@ -1,43 +1,36 @@
 import Bar from "./components/bar";
 import CalendarWindow from "./components/calendar";
+import { promiseWithTimout } from "./core/async";
 import { ConfigManager, ConfigSetup } from "./core/configmanager";
 import { Logger } from "./core/log";
 import { MonitorManager } from "./core/monitor";
 import { ThemeManager } from "./core/theme";
-import { Timer } from "./core/timer";
+import { Measured } from "./core/timer";
 
 export class Baar {
     private static logger: Logger = Logger.get(Baar);
 
+    @Measured(Baar.logger.debug)
     public static async init(): Promise<void> {
-        const timer = new Timer();
         Baar.logger.info("Starting Baar");
 
-        try {
-            ConfigSetup.run();
-            Baar.logger.debug(`ConfigSetup ellapsed ${timer.fmtElapsed()}`);
-            const configManager = ConfigManager.instace();
-            configManager.startMonitors();
+        ConfigSetup.run();
+        const configManager = ConfigManager.instace();
+        configManager.startMonitors();
 
-            const themeManager = ThemeManager.instace();
-            themeManager.startMonitors();
+        const themeManager = ThemeManager.instace();
+        themeManager.startMonitors();
+        themeManager.registerListener();
 
-            await configManager.load();
+        const configLoad = configManager.load();
+        await promiseWithTimout(1000 * 60 * 5, themeManager.notifyOnceOnLoad.bind(themeManager));
+        await configLoad;
 
-            Baar.logger.debug(`Theme initialization ellapsed ${timer.fmtElapsed()}`);
+        const monitorManager = MonitorManager.instance();
+        await monitorManager.applyOnAllMononitor(Bar);
 
-            const monitorManager = MonitorManager.instance();
-            await monitorManager.applyOnAllMononitor(Bar);
-            Baar.logger.debug(`Bars registration ellapsed ${timer.fmtElapsed()}`);
+        monitorManager.registerEvents(Bar);
 
-            monitorManager.registerEvents(Bar);
-            Baar.logger.debug(`Bar event monitoring registration ellapsed ${timer.fmtElapsed()}`);
-
-            await (async () => await CalendarWindow())();
-        } catch (err: unknown) {
-            Baar.logger.error("I have no clue what happened", err);
-        } finally {
-            Baar.logger.info(`Baar initialization ellapsed ${timer.fmtElapsed()}`);
-        }
+        await (async () => await CalendarWindow())();
     }
 }

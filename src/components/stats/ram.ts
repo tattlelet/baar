@@ -1,6 +1,9 @@
 import { readFileAsync, Variable } from "astal";
 import { delimiterSplit } from "src/core/string";
 import { Poller } from "./poller";
+import { Measured } from "src/core/timer";
+import { RegexBuilder } from "src/core/regex";
+import { EagerPoll } from "../common/variable";
 
 export interface RamStats {
     readonly usage?: number;
@@ -9,15 +12,13 @@ export interface RamStats {
 export class RamPoller implements Poller<RamStats> {
     private static logger: Logger = Logger.get(RamPoller);
     private static MEM_INFO_PATH = "/proc/meminfo";
-    private static MEM_INFO_REGEX = new RegExp(
-        ["^(", ["MemTotal:\\s+(?<total>\\d+)\\skB", "MemAvailable:\\s+(?<available>\\d+)\\skB"].join("|"), ")$"].join(
-            ""
-        )
-    );
+    private static MEM_INFO_REGEX = RegexBuilder.new()
+        .orRegexes(/MemTotal:\s+(?<total>\d+)\skB/, /MemAvailable:\s+(?<available>\d+)\skB/)
+        .anchor()
+        .build();
 
-    public pollerVariable(frequency: number): Variable<RamStats> {
-        const f = this.stats.bind(this);
-        return new Variable({} as RamStats).poll(frequency, f);
+    public pollerVariable(frequency: number): Variable<RamStats | null> {
+        return EagerPoll.create(frequency, this.stats.bind(this));
     }
 
     public async stats(): Promise<RamStats> {

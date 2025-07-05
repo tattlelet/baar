@@ -43,6 +43,7 @@ function getTaskbarSize(window: Gtk.Window): Dimension {
 export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullable<JSX.Element>> {
     const { TOP, LEFT, RIGHT } = Astal.WindowAnchor;
     const activeX = new Variable(0);
+    const enableResize = new Variable(false);
 
     return (
         <window
@@ -58,8 +59,8 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
 
                 GLib.idle_add(
                     GLib.PRIORITY_LOW,
-                    ((activeX: any, taskbar: any) => {
-                        if (activeX.get() === taskbar.get_allocated_width()) {
+                    ((enableResize: Variable<boolean>, activeX: Variable<number>, taskbar: Gtk.ScrolledWindow) => {
+                        if (!enableResize.get() || activeX.get() === taskbar.get_allocated_width()) {
                             return GLib.SOURCE_CONTINUE;
                         }
 
@@ -67,12 +68,25 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                         taskbar.queue_resize();
 
                         return GLib.SOURCE_CONTINUE;
-                    }).bind(null, activeX, taskbar)
+                    }).bind(null, enableResize, activeX, taskbar)
                 );
 
                 self.connect_after("size-allocate", (_, event) => {
                     activeX.set(getTaskbarSize(self).width);
                 });
+
+                // Todo: refactor based on tray size and other triggers to do the first load to avoid sliding
+                GLib.idle_add(
+                    GLib.PRIORITY_DEFAULT_IDLE,
+                    ((enableResize: Variable<boolean>, activeX: Variable<number>) => {
+                        if (CPU_POLLER.get() !== "" && GPU_POLLER.get() !== "" && RAM_POLLER.get() !== "") {
+                            print(activeX.get());
+                            enableResize.set(true);
+                            return GLib.SOURCE_REMOVE;
+                        }
+                        return GLib.SOURCE_CONTINUE;
+                    }).bind(null, enableResize, activeX)
+                );
             }}
         >
             <centerbox className="bar-box">

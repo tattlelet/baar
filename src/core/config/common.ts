@@ -1,6 +1,7 @@
 import { readFileAsync, Gio } from "astal";
 import { RegexBuilder } from "../regex";
 import { ConfigAggregator, ConfigRecordTransformer } from "./base";
+import { Measured } from "../timer";
 
 export function partialConfigMatcher(): RegexBuilder {
     return RegexBuilder.new()
@@ -16,7 +17,7 @@ export class ReadonlyAggregator<T> implements ConfigAggregator<T, Readonly<T[]>>
 }
 
 export class RecordAggregator<K extends keyof any, V> implements ConfigAggregator<[K, V], Readonly<Record<K, V>>> {
-    aggregate(results: [K, V][]): Record<K, V> {
+    public aggregate(results: [K, V][]): Record<K, V> {
         const aggregated_result = results.reduce(
             (acc, [key, value]) => {
                 acc[key] = value;
@@ -36,7 +37,7 @@ export interface HasGroup {
 export class GroupAggregator<T extends HasGroup> implements ConfigAggregator<T, T[]> {
     constructor(private readonly chainFactory: new (agg: T[], group?: string) => T) {}
 
-    aggregate(results: T[]): T[] {
+    public aggregate(results: T[]): T[] {
         const groupMatchers = results.filter(
             replacer => replacer.group() !== undefined && replacer.group() !== "global"
         );
@@ -73,8 +74,9 @@ export class NoopTransformer<R> implements ConfigRecordTransformer<R, R> {
 }
 
 export class ConfigHelper {
-    private static logger = Logger.get(ConfigHelper);
+    private static logger = Logger.get(this);
 
+    @Measured(ConfigHelper.logger.debug)
     public static async readConfigFile(path: string): Promise<string | undefined> {
         return (await wrapIO(ConfigHelper.logger, readFileAsync(path), "Failed to read config file")).match(
             v => v,

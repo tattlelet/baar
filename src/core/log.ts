@@ -34,7 +34,6 @@ export class Logger {
         }
     }
 
-    // Todo: rework this
     public except(reason: unknown, depth = 0, seen = new WeakSet()): void {
         const prefix = "  ".repeat(depth); // for indentation
 
@@ -85,9 +84,9 @@ export class Logger {
                 }
             }
         } else if (typeof reason === "string") {
-            console.error(`${prefix}🟡 Error string: "${reason}"`);
+            this.error(`${prefix}🟡 Error string: "${reason}"`);
         } else {
-            console.error(`${prefix}⚫️ Unknown error type (${typeof reason}):`, reason);
+            this.error(`${prefix}⚫️ Unknown error type (${typeof reason}):`, reason);
         }
     }
 
@@ -98,4 +97,22 @@ export class Logger {
         }
         return new Logger(name);
     }
+}
+
+export function jsonReplacer(key: string, value: any): any {
+    if (value instanceof RegExp) {
+        return value.toString();
+    }
+    return value;
+}
+
+export function LogMe(log: (...args: any[]) => void) {
+    return function <T extends { new (...args: any[]): {} }>(constructor: T) {
+        return class extends constructor {
+            constructor(...args: any[]) {
+                super(...args);
+                log(`🔍 ${JSON.stringify(this, jsonReplacer, 2)}`);
+            }
+        };
+    };
 }

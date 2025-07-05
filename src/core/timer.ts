@@ -18,3 +18,34 @@ export class Timer {
         return `${this.elapsed()}${this.unit}`;
     }
 }
+
+export function Measured<T>(logF: (...args: any[]) => void) {
+    return function (t: T, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value;
+
+        descriptor.value = function (...args: any[]) {
+            const timer = new Timer();
+
+            try {
+                const result = originalMethod.apply(this, args);
+
+                if (result && typeof result.then === "function" && typeof result.finally === "function") {
+                    // Async inference
+                    return result.finally(() => {
+                        logF(`⏱️ ${propertyKey} elapsed ${timer.fmtElapsed()}`);
+                    });
+                }
+
+                // Sync inference
+                logF(`⏱️ ${propertyKey} elapsed ${timer.fmtElapsed()}`);
+                return result;
+            } catch (e) {
+                // Sync throw: log and rethrow
+                logF(`⏱️ ${propertyKey} elapsed ${timer.fmtElapsed()}`);
+                throw e;
+            }
+        };
+
+        return descriptor;
+    };
+}

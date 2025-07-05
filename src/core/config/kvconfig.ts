@@ -1,4 +1,6 @@
+import { LogMe } from "../log";
 import { RegexMatcher } from "../regex";
+import { Measured } from "../timer";
 import { ConfigRecordParser, ConfigParser } from "./base";
 import { NoopTransformer, RecordAggregator, partialConfigMatcher } from "./common";
 
@@ -19,13 +21,19 @@ class KVConfigRecordParser implements ConfigRecordParser<[string, string]> {
 }
 
 export class KVConfigParser extends ConfigParser<[string, string], [string, string], Readonly<Record<string, string>>> {
-    public static logger: Logger = Logger.get(KVConfigParser);
+    public static logger: Logger = Logger.get(this);
 
     constructor() {
         super(KVConfigParser.logger, new KVConfigRecordParser(), new NoopTransformer(), new RecordAggregator());
     }
+
+    @Measured(KVConfigParser.logger.debug)
+    public async parse(content?: string): Promise<Readonly<Record<string, string>>> {
+        return super.parse(content);
+    }
 }
 
+@LogMe(KVConfig.logger.debug)
 export class KVConfig {
     private static logger = Logger.get(KVConfig);
 
@@ -54,7 +62,6 @@ export class KVConfig {
             }
         });
         Object.freeze(this);
-        KVConfig.logger.debug("End config:", JSON.stringify(this));
     }
 }
 

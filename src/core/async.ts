@@ -116,3 +116,13 @@ export class Atomic<T extends any> {
         return this.t;
     }
 }
+
+export function promiseWithTimout(timeout: number, callback: (f: () => Promise<void>) => void): Promise<void> {
+    const notifyF = () => {
+        return new Promise<void>(resolve => {
+            callback(async () => resolve(undefined));
+        });
+    };
+
+    return withTimeout(timeout, async () => notifyF())();
+}
