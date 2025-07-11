@@ -3,6 +3,9 @@ import { delimiterSplit } from "src/core/string";
 import { Poller } from "./poller";
 import GTop from "gi://GTop?version=2.0";
 import { EagerPoll } from "../common/variable";
+import { Measured } from "src/core/timer";
+import { Logger } from "src/core/log";
+import { wrapIO } from "src/core/matcher/base";
 
 export interface CpuStats {
     readonly usage?: number;

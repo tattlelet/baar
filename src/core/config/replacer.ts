@@ -5,7 +5,8 @@ import { RegexMatcher } from "../regex";
 import { ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
 import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
 import { Measured } from "../timer";
-import { LogMe } from "../log";
+import { Logger, LogMe } from "../log";
+import { Result, Ok, Err } from "../matcher/base";
 
 export interface ReplaceConfigRecord {
     readonly group?: string;

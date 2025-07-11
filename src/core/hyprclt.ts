@@ -1,6 +1,10 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { wrapAsync } from "./async";
-import { execAsync } from "astal";
+import { boundCall } from "./functions";
+import { Measured } from "./timer";
+import { Logger } from "./log";
+import { Result, Resultify, Err, Ok } from "./matcher/base";
+import { Optional } from "./matcher/optional";
+import { Asyncify } from "./async/base";
 
 export type HyprctlKeyboard = {
     address: string;
@@ -33,6 +37,7 @@ export type SwitchKeyboardOptions = "next" | "prev";
 export class HyprCtl {
     private static logger: Logger = Logger.get(HyprCtl);
     private readonly hyprlandService = AstalHyprland.get_default();
+    private readonly hyprlandDispatcher = boundCall(this.hyprlandService, "message");
     private static INSTANCE: HyprCtl = new HyprCtl();
 
     private constructor() {}
@@ -42,43 +47,41 @@ export class HyprCtl {
     }
 
     public async devices(): Promise<Result<HyprctlDeviceLayout, unknown>> {
-        return wrapIO(
-            HyprCtl.logger,
-            wrapAsync(this.requestDevices.bind(this))(),
-            "Failed getting devices info from hyprctl"
-        );
+        return Resultify.promise(Asyncify.from(this.requestDevices.bind(this))())
+            .then(
+                filled => filled.or(
+                    err => {
+                        HyprCtl.logger.except("Failed getting devices info from hyprctl", err)
+                        return Err.of(err);
+                    }
+                )
+            );
     }
 
     public async mainKeyboard(): Promise<Result<HyprctlKeyboard, unknown>> {
-        const result = await this.devices();
-
-        if (result.isErr()) {
-            return new Err<unknown>(result.value);
-        }
-
-        const main = (result as Ok<HyprctlDeviceLayout>).value.keyboards.find(kb => kb.main);
-
-        if (main === undefined) {
-            return new Err<unknown>(Error("Failed to find layout"));
-        }
-
-        return new Ok(main);
+        return this.devices().then(
+            filled => filled.apply(
+                result => Optional.from(result.keyboards.find(kb => kb.main))
+                    .map<Result<HyprctlKeyboard, unknown>>(Ok.of)
+                    .getOr(Err.of("Failed to find layout")))
+        )
     }
 
-    private requestDevices(): HyprctlDeviceLayout {
+    requestDevices(): HyprctlDeviceLayout {
         return JSON.parse(this.hyprlandService.message("j/devices")) as HyprctlDeviceLayout;
     }
 
+    @Measured(HyprCtl.logger.debug)
     public async switchKbLayout(direction: SwitchKeyboardOptions): Promise<void> {
-        (await this.mainKeyboard()).match(
-            main => {
-                const cmd = `hyprctl switchxkblayout ${main.name} ${direction}`;
-                wrapIO(HyprCtl.logger, execAsync(cmd), `Failed executing ${cmd}`);
-            },
-            e => {
-                HyprCtl.logger.warn("Failed to switch kb layout", e);
-            }
-        );
+        this.mainKeyboard().then(
+            filled => filled.apply(
+                main => Resultify.from(this.hyprlandDispatcher)(`switchxkblayout ${main.name} ${direction} 2`)
+            )
+            .match(
+                () => HyprCtl.logger.debug("Switched kb layout successfully"),
+                e => HyprCtl.logger.except("Failed to switch keyboard layout", e)
+            )
+        )
     }
 }
 

@@ -34,7 +34,12 @@ export class Logger {
         }
     }
 
-    public except(reason: unknown, depth = 0, seen = new WeakSet()): void {
+    public except(message: string, reason: unknown): void {
+        this.error(message);
+        this.exceptStack(reason);
+    }
+
+    private exceptStack(reason: unknown, depth = 0, seen = new WeakSet()): void {
         const prefix = "  ".repeat(depth); // for indentation
 
         if (typeof reason === "object" && reason !== null) {
@@ -72,7 +77,7 @@ export class Logger {
             // ES2022 Error.cause support (non-enumerable)
             if (reason instanceof Error && reason.cause && typeof reason.cause === "object") {
                 this.error(`${prefix}↪ Nested error via "cause":`);
-                this.except(reason.cause, depth + 1, seen);
+                this.exceptStack(reason.cause, depth + 1, seen);
             }
 
             // Check for manually attached nested errors
@@ -80,7 +85,7 @@ export class Logger {
                 const val: any = (reason as any)[key];
                 if (val && typeof val === "object" && val !== reason) {
                     this.error(`${prefix}↪ Nested error via "${key}":`);
-                    this.except(val, depth + 1, seen);
+                    this.exceptStack(val, depth + 1, seen);
                 }
             }
         } else if (typeof reason === "string") {

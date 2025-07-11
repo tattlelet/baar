@@ -5,6 +5,10 @@ import { ConfigHelper } from "./config/common";
 import { ConfigManager } from "./configmanager";
 import { toCss } from "./config/kvconfig";
 
+import { Logger } from "./log";
+import { wrapIO, Result, Ok, Err } from "./matcher/base";
+import { LockedRunner } from "./async/base";
+
 export class ThemeManager {
     private static logger = Logger.get(this);
     private static INSTANCE = new ThemeManager();
@@ -45,7 +49,7 @@ export class ThemeManager {
         return [`${scssImports.join("\n")}`, ...(await this.allSCSS())].join("\n");
     }
 
-    private async writeCombineSCSS(): Promise<Result<Void, unknown>> {
+    private async writeCombineSCSS(): Promise<Result<void, unknown>> {
         return wrapIO(
             ThemeManager.logger,
             writeFileAsync(this.combinedSCSSPath, await this.finalSCSS()),
@@ -53,7 +57,7 @@ export class ThemeManager {
         );
     }
 
-    private async saveVariables(): Promise<Result<Void, unknown>> {
+    private async saveVariables(): Promise<Result<void, unknown>> {
         return wrapIO(
             ThemeManager.logger,
             writeFileAsync(this.variablesPath, toCss(await ConfigManager.instace().config.getOrLoad())),
@@ -61,15 +65,15 @@ export class ThemeManager {
         );
     }
 
-    private async rebuildCss(): Promise<Result<Void, unknown>> {
+    private async rebuildCss(): Promise<Result<void, unknown>> {
         return (
             await wrapIO(
                 ThemeManager.logger,
                 execAsync(`sass --no-source-map ${this.combinedSCSSPath} ${this.endCSSPath}`),
                 "Unable to rebuild final css"
             )
-        ).match<Result<Void, unknown>>(
-            _ => new Ok<Void>(undefined),
+        ).match<Result<void, unknown>>(
+            _ => new Ok<void>(undefined),
             e => new Err<unknown>(e)
         );
     }
@@ -98,8 +102,14 @@ export class ThemeManager {
     }
 
     @Measured(ThemeManager.logger.debug)
-    public async syncLoadStyle(): Promise<void> {
-        return this.reloader.sync(this.loadStyle.bind(this));
+    public async syncLoadStyle(): Promise<Result<void, unknown>> {
+        return this.reloader.sync(this.loadStyle.bind(this)).then(filled => filled.mapResult(
+            _ => new Ok(_),
+            e => {
+                ThemeManager.logger.except("Unable to load theme", e);
+                return new Err(e);
+            }
+        ));
     }
 
     public registerListener(): void {

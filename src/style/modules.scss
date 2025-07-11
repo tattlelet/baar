@@ -42,6 +42,94 @@ menuitem:hover {
 }
 
 
+window.mixer {
+    .mixer-box {
+        background-color: rgba(red(#1a2433), green(#1a2433), blue(#1a2433), 1);
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .bar-section {
+        margin: 0.3em 0em 0.3em 0em;
+    }
+
+    .bar-item {
+        background-color: rgba(red(#1a2433), green(#1a2433), blue(#1a2433), 1);
+        border-radius: 0.2em;
+        margin: 0em 0.2em 0em 0.2em;
+        padding: 0.2em 0.6em 0.2em 0.6em;
+        color: #a39e80;
+        font-family: "JetBrainsMono Nerd Font Propo";
+        font-size: 1.2em;
+        font-weight: bold;
+        background-color: #243448;
+        box-shadow:
+            inset 0 -0.2em 0 #16212b,
+            0 0.2em 0.3em rgba(0, 0, 0, 0.5),
+            inset 0 0.1em 0 #3f5279;
+    }
+
+    scale.mixer-slider slider:focus,
+    scale.mixer-slider slider:hover {
+        background-color: #6496d3;
+    }
+
+    scale.mixer-slider trough:focus,
+    scale.mixer-slider trough:hover {
+        background-color: #3b4f63;
+        outline: 0.1em dotted #435568;
+        margin-top: 0px;
+        padding-top: 0px;;
+    }
+
+    scale.mixer-slider slider {
+        background-image: none;
+        background-color: #3b4f63;     /* Primary color (blue) */
+        min-width: 0.3em;
+        min-height: 0.5em;
+        border-radius: 0.7em;
+    }
+
+    scale.mixer-slider value {
+        font-size: 0.9em;
+        margin-top: 0.2em;
+        margin-bottom: -0.5em;
+    }
+
+    scale.mixer-slider trough {
+        min-height: 0.2em;
+        border-radius: 0.3em;
+        background-color: #3b4f63;
+    }
+    
+    .mixer-box {
+        padding: 0;
+        margin: 0;
+    }
+
+    .mixer-window-box {
+        margin: 0;
+        padding: 0;
+    }
+
+    .stream-mixer-box {
+        margin-top: -0.3em;
+    }
+
+    .stream-separator {
+        background-color: #16212b;
+    }
+
+    .stream-name {
+        font-size: 0.9em;
+        margin-bottom: -0.2em;
+    }
+
+    .stream-box {
+        padding-top: 0.2em;
+    }
+}
+
 window.Bar {
     background: transparent;
 
@@ -131,15 +219,15 @@ window.Bar {
     }
 
     .ws-focused {
-        color: #D55A7A; 
+        color: #D55A7A;
     }
 
     .ws-unfocused {
-        color: #7AA8F7
+        color: #7AA8F7;
     }
 
     .ws-monitor-n {
-        color: #a4f1c2
+        color: #a4f1c2;
     }
 
     .task {
@@ -176,6 +264,22 @@ window.Bar {
 
     scrolledwindow, * {
         all: unset;
+    }
+    
+    .bar-mixer-badge {
+        padding: 0em 0.3em 0em 0.3em;
+    }
+
+    .bar-mixer-item {
+        margin: 0em 0.3em 0em 0.3em;
+    }
+
+    .bar-mixer-input {
+        color: #cbbd79;
+    }
+
+    .bar-mixer-output {
+        color: #D67E70;
     }
 }
 

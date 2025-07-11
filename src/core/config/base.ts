@@ -1,3 +1,5 @@
+import { Logger } from "../log";
+import { Result } from "../matcher/base";
 import { ConfigHelper } from "./common";
 
 export type Readonly<T> = {

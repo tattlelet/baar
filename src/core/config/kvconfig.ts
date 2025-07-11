@@ -1,4 +1,5 @@
-import { LogMe } from "../log";
+import { Logger, LogMe } from "../log";
+import { Result, Ok, Err } from "../matcher/base";
 import { RegexMatcher } from "../regex";
 import { Measured } from "../timer";
 import { ConfigRecordParser, ConfigParser } from "./base";

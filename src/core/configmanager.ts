@@ -7,6 +7,10 @@ import { readConfigFile } from "./config/base";
 import { Measured } from "./timer";
 import { MonitorWatcherProps } from "./files";
 
+import { Logger } from "./log";
+import { Result, Ok, Err } from "./matcher/base";
+import { LockedRunner } from "./async/base";
+
 export abstract class ConfigLoader<T> {
     public abstract get(): T | undefined;
     public abstract getOrLoad(): Promise<T>;
@@ -63,8 +67,14 @@ export class LockedConfigLoader<T> extends DefaultConfigLoader<T> {
     protected readonly reloader = new LockedRunner();
 
     @Measured(LockedConfigLoader.logger.debug)
-    public async syncLoad(): Promise<void> {
-        return this.reloader.sync(this.load.bind(this));
+    public async syncLoad(): Promise<Result<void, unknown>> {
+        return this.reloader.sync(this.load.bind(this)).then(filled => filled.mapResult(
+            _ => new Ok(_),
+            e => {
+                LockedConfigLoader.logger.except("Unable to load config", e);
+                return new Err(e);
+            }
+        ));
     }
 
     @Measured(LockedConfigLoader.logger.debug)

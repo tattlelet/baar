@@ -5,7 +5,8 @@ import { GroupAggregator, HasGroup, partialConfigMatcher, ReadonlyAggregator } f
 import { enumContainsValue } from "../enum";
 import { ClientInfoType, getClientInfo } from "../hyprclt";
 import { Measured } from "../timer";
-import { LogMe } from "../log";
+import { Logger, LogMe } from "../log";
+import { Result, Ok, Err } from "../matcher/base";
 
 export interface SymbolConfigRecord {
     readonly group?: string;
@@ -14,6 +15,7 @@ export interface SymbolConfigRecord {
     readonly symbol: string;
 }
 
+// Todo: support color
 export interface SymbolMatcherProps {
     readonly group?: string;
     readonly infoType: ClientInfoType;
@@ -84,25 +86,19 @@ export class SymbolConfigTransformer implements ConfigRecordTransformer<SymbolCo
 
     transform(configRecord: SymbolConfigRecord): Result<SymbolMatcher, undefined> {
         if (!enumContainsValue(ClientInfoType, configRecord.infoType)) {
-            return new Err(undefined);
+            return Err.of(undefined);
         }
 
-        const matcher = RegexMatcher.parse(configRecord.matcher).match(
-            regex => regex,
-            e => e
-        );
-
-        if (matcher === undefined) {
-            return new Err(undefined);
-        }
-
-        return new Ok(
-            new SymbolMatcher({
-                group: configRecord.group,
-                infoType: configRecord.infoType as ClientInfoType,
-                infoMatcher: matcher,
-                symbol: configRecord.symbol,
-            })
+        return RegexMatcher.parse(configRecord.matcher).mapResult(
+            matcher => Ok.of(
+                new SymbolMatcher({
+                    group: configRecord.group,
+                    infoType: configRecord.infoType as ClientInfoType,
+                    infoMatcher: matcher,
+                    symbol: configRecord.symbol,
+                })
+            ),
+            e => Err.of(undefined)
         );
     }
 }

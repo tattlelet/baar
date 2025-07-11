@@ -1,4 +1,6 @@
 import { anyOf, toIterator } from "./iter";
+import { Logger } from "./log";
+import { Result, Err, Ok } from "./matcher/base";
 
 export function escapeRegExp(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

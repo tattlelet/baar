@@ -2,6 +2,8 @@ import { execAsync, Variable } from "astal";
 import { Poller } from "./poller";
 import { Measured } from "src/core/timer";
 import { EagerPoll } from "../common/variable";
+import { Logger } from "src/core/log";
+import { wrapIO } from "src/core/matcher/base";
 
 export interface GpuStats {
     readonly cpuUsage?: number;

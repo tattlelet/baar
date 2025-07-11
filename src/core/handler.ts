@@ -1,5 +1,6 @@
 import { GLib } from "astal";
 import System from "system";
+import { Logger } from "./log";
 
 export class HandlerResponse {
     constructor(

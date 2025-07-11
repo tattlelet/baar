@@ -2,6 +2,8 @@ import { readFileAsync, Gio } from "astal";
 import { RegexBuilder } from "../regex";
 import { ConfigAggregator, ConfigRecordTransformer } from "./base";
 import { Measured } from "../timer";
+import { Logger } from "../log";
+import { Result, Ok, wrapIO } from "../matcher/base";
 
 export function partialConfigMatcher(): RegexBuilder {
     return RegexBuilder.new()

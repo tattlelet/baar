@@ -1,6 +1,8 @@
 import { App, Gdk } from "astal/gtk3";
 import AstalHyprland from "gi://AstalHyprland";
 import { Measured, Timer } from "./timer";
+import { Logger } from "./log";
+import { Result, Err, Ok } from "./matcher/base";
 
 const hyprlandService = AstalHyprland.get_default();
 
@@ -93,7 +95,7 @@ export class MonitorManager {
 
     private async wrapWidgetPromise(
         hybridMonitor: HybridMonitor,
-        promise: Promise<Nullable<JSX.Element>>
+        promise: Promise<JSX.Element| null>
     ): Promise<Result<LoadedWidget, unknown>> {
         return new Promise<Result<LoadedWidget, any>>((resolve, reject) => {
             promise
@@ -127,7 +129,7 @@ export class MonitorManager {
 
     @Measured(MonitorManager.logger.debug)
     public async applyOnAllMononitor(
-        widgetF: (hybridMonitor: HybridMonitor) => Promise<Nullable<JSX.Element>>
+        widgetF: (hybridMonitor: HybridMonitor) => Promise<JSX.Element | null>
     ): Promise<LoadedWidget[]> {
         const promises = (await MonitorKey.monitorMappings()).map(hybridMonitor =>
             this.wrapWidgetPromise(hybridMonitor, widgetF(hybridMonitor))
@@ -141,7 +143,7 @@ export class MonitorManager {
                     this.addToCache(loadedWidget);
                 },
                 e => {
-                    MonitorManager.logger.except(e);
+                    MonitorManager.logger.except("Apply widget to monitors", e);
                 }
             )
         );
@@ -150,7 +152,7 @@ export class MonitorManager {
     }
 
     // Todo: Rewrite monitor registration
-    public registerEvents(widgetF: (hybridMonitor: HybridMonitor) => Promise<Nullable<JSX.Element>>) {
+    public registerEvents(widgetF: (hybridMonitor: HybridMonitor) => Promise<JSX.Element | null>) {
         App.connect("monitor-added", async (_, gdkmonitor) => {
             const timer = new Timer();
             MonitorManager.logger.debug(`monitor-added event for ${gdkmonitor} received.`);
@@ -162,7 +164,7 @@ export class MonitorManager {
                         MonitorManager.logger.debug(`new widget added to ${gdkmonitor}.`);
                     },
                     e => {
-                        MonitorManager.logger.except(e);
+                        MonitorManager.logger.except("Unable to apply widget to monitor", e);
                     }
                 );
             } finally {

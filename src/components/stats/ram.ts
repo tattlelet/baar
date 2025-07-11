@@ -4,6 +4,8 @@ import { Poller } from "./poller";
 import { Measured } from "src/core/timer";
 import { RegexBuilder } from "src/core/regex";
 import { EagerPoll } from "../common/variable";
+import { Logger } from "src/core/log";
+import { wrapIO } from "src/core/matcher/base";
 
 export interface RamStats {
     readonly usage?: number;

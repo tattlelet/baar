@@ -1,4 +1,4 @@
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import { App, Astal, Gtk } from "astal/gtk3";
 import { HybridMonitor } from "src/core/monitor";
 import { DateTimeCalendar } from "./calendar";
 import { SysTray } from "./tray";
@@ -9,6 +9,7 @@ import { GLib, Variable } from "astal";
 import { Box, CenterBox } from "astal/gtk3/widget";
 import { PowerMenuButton } from "./powermenu";
 import { PollerLabel, CPU_POLLER, GPU_POLLER, RAM_POLLER } from "./pollerlabel";
+import { MixerBadge } from "./mixer";
 
 // Todo make this less shit
 function getTaskBar(window: Gtk.Window): Gtk.ScrolledWindow {
@@ -80,7 +81,6 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                     GLib.PRIORITY_DEFAULT_IDLE,
                     ((enableResize: Variable<boolean>, activeX: Variable<number>) => {
                         if (CPU_POLLER.get() !== "" && GPU_POLLER.get() !== "" && RAM_POLLER.get() !== "") {
-                            print(activeX.get());
                             enableResize.set(true);
                             return GLib.SOURCE_REMOVE;
                         }
@@ -104,6 +104,7 @@ export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullabl
                         <PollerLabel tooltip="RAM Info" symbol="" className="ram-poller" poller={RAM_POLLER} />
                     </box>
                     <SysTray />
+                    <MixerBadge />
                     <KbLayout />
                     <DateTimeCalendar />
                     <box className="bar-right" />
