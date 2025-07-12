@@ -19,10 +19,13 @@ export class LockedRunner {
         return Promise.resolve();
     }
 
-    public async sync<T extends any[], R extends any>(f: (...args: T) => Promise<R>, ...args: T): Promise<Result<R, unknown>> {
+    public async sync<T extends any[], R extends any>(
+        f: (...args: T) => Promise<R>,
+        ...args: T
+    ): Promise<Result<R, unknown>> {
         const fToRun = this.timeout > 0 ? withTimeout(this.timeout, f) : wrapAsyncFToResult(f);
-        const result = this.lock.then(_ => fToRun(...args));
-        this.lock = result.catch(LockedRunner.logger.warn).finally(this.newLock);
+        const result = this.lock.then(async () => await fToRun(...args));
+        this.lock = result.catch(LockedRunner.logger.except.bind(null, "LockedRunned failed")).finally(this.newLock);
         return result;
     }
 }
@@ -55,23 +58,20 @@ export function wrapAsyncFToResult<T extends any[], R extends any>(
     f: (...args: T) => Promise<R>
 ): (...args: T) => Promise<Result<R, unknown>> {
     return async (...args: T): Promise<Result<R, unknown>> => {
-        try {
-            return new Ok(await f(...args));
-        } catch (error) {
-            return new Err(error);
-        }
-    }
+        return f(...args)
+            .then(Ok.of)
+            .catch(Err.of);
+    };
 }
 
-export function wrapAsyncResult<R extends any>(
-    promise: Promise<R>
-): Promise<Result<R, unknown>> {
-    return promise.then(filled => {
-        return new Ok(filled);
-    })
-    .catch(rejected => {
-        return new Err(rejected);
-    })
+export function wrapAsyncResult<R extends any>(promise: Promise<R>): Promise<Result<R, unknown>> {
+    return promise
+        .then(filled => {
+            return new Ok(filled);
+        })
+        .catch(rejected => {
+            return new Err(rejected);
+        });
 }
 
 export async function signalWrapper<T extends any[], R extends any>(
@@ -81,7 +81,7 @@ export async function signalWrapper<T extends any[], R extends any>(
 ): Promise<Result<R, unknown>> {
     return new Promise<Result<R, unknown>>((resolve, reject) => {
         if (signal.aborted) {
-            print("aborteded")
+            print("aborteded");
             reject(new Error("Aborted before start"));
             return;
         }
@@ -103,7 +103,7 @@ export function withTimeout<T extends any[], R extends any>(
     return function (...args: T): Promise<Result<R, unknown>> {
         if (timeout <= 0) {
             return new Promise(resolve => {
-                resolve(new Err(new Error("Invalid timeout input, timeout has to be > 0")))
+                resolve(new Err(new Error("Invalid timeout input, timeout has to be > 0")));
             });
         }
 
@@ -126,8 +126,8 @@ export function withTimeout<T extends any[], R extends any>(
 }
 
 export const Asyncify = {
-    from: wrapAsync
-}
+    from: wrapAsync,
+};
 
 export function wrapAsync<T extends any[], R extends any>(f: (...args: T) => R): (...args: T) => Promise<R> {
     return async (...args: T) => f(...args);
@@ -152,7 +152,10 @@ export class Atomic<T extends any> {
     }
 }
 
-export function promiseWithTimout(timeout: number, callback: (f: () => Promise<void>) => void): Promise<Result<void, unknown>> {
+export function promiseWithTimout(
+    timeout: number,
+    callback: (f: () => Promise<void>) => void
+): Promise<Result<void, unknown>> {
     const notifyF = () => {
         return new Promise<void>(resolve => {
             callback(async () => resolve(undefined));
@@ -163,9 +166,11 @@ export function promiseWithTimout(timeout: number, callback: (f: () => Promise<v
 }
 
 export class DeferredPromise<T extends any | PromiseLike<any>> {
-    public constructor(public readonly promise: Promise<T>,
-    public readonly resolve: (value: T) => void,
-    public readonly reject: (value: unknown) => void) {}
+    public constructor(
+        public readonly promise: Promise<T>,
+        public readonly resolve: (value: T) => void,
+        public readonly reject: (value: unknown) => void
+    ) {}
 }
 
 export function createDeferred<T extends any | PromiseLike<any>>(): Result<DeferredPromise<T>, unknown> {

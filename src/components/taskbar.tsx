@@ -6,6 +6,8 @@ import { Astal, Gdk, Gtk } from "astal/gtk3";
 import { toSubscript } from "src/core/symbols";
 import { isScrollDown, isScrollUp } from "./common/events";
 import { ConfigManager } from "src/core/configmanager";
+import { SymbolConfig } from "src/core/config/symbolconfig";
+import { DefaultKVConfigValues } from "src/core/config/kvconfig";
 
 const hyprlandService = Hyprland.get_default();
 
@@ -23,18 +25,24 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
     return result.join(" ");
 }
 
+// Todo: handle default
 function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
-    const symbols = ConfigManager.instace().symbols.get()!;
+    const foundIcon = ConfigManager.instace()
+        .symbols.get()
+        .map(symbols => symbols.getSymbol(client))
+        .getOr(SymbolConfig.DEFAULT_ICON);
 
-    const foundIcon = symbols.getSymbol(client);
-    let title = client.title;
-
-    const replacer = ConfigManager.instace().replacer.get()!;
-    title = replacer.replace(client);
+    let title = ConfigManager.instace()
+        .replacer.get()
+        .map(replacer => replacer.replace(client))
+        .getOr(client.title);
 
     title = `${foundIcon}: ${title}`;
 
-    const maxLenght = ConfigManager.instace().config.get()!.taskbarMaxLength;
+    const maxLenght = ConfigManager.instace()
+        .config.get()
+        .map(config => config.taskbarMaxLength)
+        .getOr(DefaultKVConfigValues.TASKBAR_MAX_LENGTH);
 
     if (title.length <= maxLenght) {
         label.label = title;
@@ -52,8 +60,6 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
     // Todo: Abstract flip flag
     const replacerReloaded = new Variable(0);
     const symbolsReloaded = new Variable(0);
-    // Todo: Make this available in namespace/class etc
-    const taskBarMaxLength = new Variable(ConfigManager.instace().config.get()!.taskbarMaxLength);
 
     ConfigManager.instace().symbols.onLoadNofity(async () => {
         replacerReloaded.set(replacerReloaded.get() ^ 1);
@@ -61,10 +67,6 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
 
     ConfigManager.instace().replacer.onLoadNofity(async () => {
         symbolsReloaded.set(symbolsReloaded.get() ^ 1);
-    });
-
-    ConfigManager.instace().config.onLoadNofity(async config => {
-        taskBarMaxLength.set(config.taskbarMaxLength);
     });
 
     const v = Variable.derive(

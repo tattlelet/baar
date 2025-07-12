@@ -1,6 +1,6 @@
 import { anyOf, toIterator } from "./iter";
 import { Logger } from "./log";
-import { Result, Err, Ok } from "./matcher/base";
+import { Optional } from "./matcher/optional";
 
 export function escapeRegExp(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -52,33 +52,32 @@ export class RegexMatcher {
 
     private static REGEX_TYPE_MATCHER = /^\/(?<pattern>.*)\/(?<flags>[gimsuy]+)?$/;
 
-    public static matchString(s: string, r: RegExp, ...ensureAll: string[]): Result<RegExpMatchArray, undefined> {
+    public static matchString(s: string, r: RegExp, ...ensureAll: string[]): Optional<RegExpMatchArray> {
         const match = s.match(r);
         if (match === null || match.groups === undefined) {
-            return new Err(undefined);
+            return Optional.none();
         }
 
         if (anyOf(toIterator(ensureAll), item => !(item in match.groups!) || match.groups![item] === undefined)) {
-            return new Err(undefined);
+            return Optional.none();
         }
 
-        return new Ok(match);
+        return Optional.from(match);
     }
 
-    public static parse(matcher: string): Result<RegExp, undefined> {
+    public static parse(matcher: string): Optional<RegExp> {
         try {
-            return new Ok(
-                RegexMatcher.matchString(matcher, RegexMatcher.REGEX_TYPE_MATCHER, "pattern").match(
-                    matcher => new RegExp(matcher.groups!.pattern, matcher.groups!.flags),
-                    noMatch => {
+            return Optional.some(
+                RegexMatcher.matchString(matcher, RegexMatcher.REGEX_TYPE_MATCHER, "pattern")
+                    .map(matcher => new RegExp(matcher.groups!.pattern, matcher.groups!.flags))
+                    .getOr(() => {
                         RegexMatcher.logger.warn(`Provided regex ${matcher} will be treated as a string match`);
                         return new RegExp(`${escapeRegExp(matcher)}`);
-                    }
-                )
+                    })
             );
         } catch (e) {
             RegexMatcher.logger.warn(`Bad regex provided: ${matcher}`);
-            return new Err(undefined);
+            return Optional.none();
         }
     }
 }

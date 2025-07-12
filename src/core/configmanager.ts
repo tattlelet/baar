@@ -10,53 +10,57 @@ import { MonitorWatcherProps } from "./files";
 import { Logger } from "./log";
 import { Result, Ok, Err } from "./matcher/base";
 import { LockedRunner } from "./async/base";
+import { Optional } from "./matcher/optional";
 
 export abstract class ConfigLoader<T> {
-    public abstract get(): T | undefined;
-    public abstract getOrLoad(): Promise<T>;
-    public abstract set(t: T): Promise<void>;
+    public abstract get(): Optional<T>;
+    public abstract getOrLoad(): Promise<Optional<T>>;
+    protected abstract set(t: Promise<Optional<T>>): Promise<void>;
     public abstract load(): Promise<void>;
-    public abstract notify(t: T): Promise<void>;
-    public abstract onLoadNofity(callback: (config: T) => Promise<void>): void;
+    public abstract notify(t: Optional<T>): Promise<void>;
+    public abstract onLoadNofity(callback: (config: Optional<T>) => Promise<void>): void;
 }
 
 export class DefaultConfigLoader<T> extends ConfigLoader<T> {
-    protected listeners: ((config: T) => Promise<void>)[] = [];
-    private currentConfig: T | undefined;
+    protected listeners: ((config: Optional<T>) => Promise<void>)[] = [];
+    private currentConfig: Optional<T> = Optional.none();
 
     constructor(private readonly configLoadF: () => Promise<T>) {
         super();
     }
 
-    public get(): T | undefined {
+    public get(): Optional<T> {
         return this.currentConfig;
     }
 
-    public async getOrLoad(): Promise<T> {
+    public async getOrLoad(): Promise<Optional<T>> {
         const config = this.currentConfig;
-        if (config !== undefined) {
+        if (config.isSome()) {
             return config;
         }
-        await this.load();
-        return this.currentConfig!;
+        return this.load().then(((self: this) => self.currentConfig).bind(null, this));
     }
 
-    public async set(t: T): Promise<void> {
-        this.currentConfig = t;
-        this.notify(this.currentConfig);
+    protected async set(t: Promise<Optional<T>>): Promise<void> {
+        return t.then(
+            ((self: this, filled: Optional<T>) => {
+                self.currentConfig = filled;
+                self.notify(self.currentConfig);
+            }).bind(null, this)
+        );
     }
 
-    public async notify(t: T): Promise<void> {
+    public async notify(t: Optional<T>): Promise<void> {
         for (const listener of this.listeners) {
             listener(t);
         }
     }
 
     public async load(): Promise<void> {
-        this.set(await this.configLoadF());
+        return this.set(this.configLoadF().then(Optional.some));
     }
 
-    public onLoadNofity(callback: (config: T) => Promise<void>): void {
+    public onLoadNofity(callback: (config: Optional<T>) => Promise<void>): void {
         this.listeners.push(callback);
     }
 }
@@ -68,17 +72,16 @@ export class LockedConfigLoader<T> extends DefaultConfigLoader<T> {
 
     @Measured(LockedConfigLoader.logger.debug)
     public async syncLoad(): Promise<Result<void, unknown>> {
-        return this.reloader.sync(this.load.bind(this)).then(filled => filled.mapResult(
-            _ => new Ok(_),
-            e => {
+        return this.reloader.sync(this.load.bind(this)).then(filled =>
+            filled.mapResult(Ok.of, e => {
                 LockedConfigLoader.logger.except("Unable to load config", e);
-                return new Err(e);
-            }
-        ));
+                return Err.of(e);
+            })
+        );
     }
 
     @Measured(LockedConfigLoader.logger.debug)
-    public notify(t: T): Promise<void> {
+    public notify(t: Optional<T>): Promise<void> {
         return super.notify(t);
     }
 }
@@ -157,7 +160,7 @@ export class ConfigManager {
 
     @Measured(ConfigManager.logger.debug)
     public async load(): Promise<void> {
-        await Promise.all([this.config.syncLoad(), this.symbols.syncLoad(), this.replacer.syncLoad()]);
+        return Promise.all([this.config.syncLoad(), this.symbols.syncLoad(), this.replacer.syncLoad()]).then();
     }
 }
 

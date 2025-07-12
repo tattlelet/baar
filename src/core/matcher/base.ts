@@ -1,6 +1,5 @@
 import { Logger } from "../log";
 
-
 export abstract class Result<V, E> {
     public abstract isOk(): this is Ok<V>;
     public abstract isErr(): this is Err<E>;
@@ -10,24 +9,17 @@ export abstract class Result<V, E> {
         errHandler: (e: E) => Result<R, ER>
     ): Result<R, ER>;
 
-
     // Unsafe methods
     public abstract expect(message?: string): V;
     public abstract unwrap(): V;
     public abstract unwrapErr(): E;
 
     public apply<U>(fn: (value: V) => Result<U, E>): Result<U, E> {
-        return this.match(
-            ok => fn(ok),
-            Err.of<E>
-        );
+        return this.match(ok => fn(ok), Err.of<E>);
     }
 
     public or<U>(fn: (err: E) => Result<V, U>): Result<V, U> {
-        return this.match(
-            Ok.of,
-            err => fn(err)
-        );
+        return this.match(Ok.of, err => fn(err));
     }
 
     public collect(): V | E {
@@ -136,29 +128,24 @@ export function wrapFToResult<T extends any[], R extends any>(
     return (...args: T): Result<R, unknown> => {
         try {
             return Ok.of(f(...args));
-        }
-        catch (e) {
+        } catch (e) {
             return Err.of(e);
         }
-    }
+    };
 }
 
 export const Resultify = {
     from: wrapFToResult,
-    promise: wrapPromise
-}
+    promise: wrapPromise,
+};
 
 export function wrapPromise<T>(promise: Promise<T>): Promise<Result<T, unknown>> {
-    return promise
-        .then(Ok.of)
-        .catch(Err.of);
+    return promise.then(Ok.of).catch(Err.of);
 }
 
 export async function wrapIO<T>(logger: Logger, promise: Promise<T>, message: string): Promise<Result<T, unknown>> {
-    return promise
-        .then(Ok.of)
-        .catch(err => {
-            logger.warn(message, err);
-            return Err.of(err);
-        });
+    return promise.then(Ok.of).catch(err => {
+        logger.warn(message, err);
+        return Err.of(err);
+    });
 }

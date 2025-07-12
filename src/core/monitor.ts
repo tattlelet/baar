@@ -95,7 +95,7 @@ export class MonitorManager {
 
     private async wrapWidgetPromise(
         hybridMonitor: HybridMonitor,
-        promise: Promise<JSX.Element| null>
+        promise: Promise<JSX.Element | null>
     ): Promise<Result<LoadedWidget, unknown>> {
         return new Promise<Result<LoadedWidget, any>>((resolve, reject) => {
             promise

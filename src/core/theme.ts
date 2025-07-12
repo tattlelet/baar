@@ -6,8 +6,9 @@ import { ConfigManager } from "./configmanager";
 import { toCss } from "./config/kvconfig";
 
 import { Logger } from "./log";
-import { wrapIO, Result, Ok, Err } from "./matcher/base";
+import { wrapIO, Result, Ok, Err, Resultify } from "./matcher/base";
 import { LockedRunner } from "./async/base";
+import { Optional } from "./matcher/optional";
 
 export class ThemeManager {
     private static logger = Logger.get(this);
@@ -30,69 +31,81 @@ export class ThemeManager {
     ) {}
 
     private async allSCSS(): Promise<string[]> {
-        const results = Promise.all(
+        return Promise.all(
             this.scssPaths
                 .map(path => readFileAsync(path))
-                .map(promise => wrapIO(ThemeManager.logger, promise, "Could not read scss file"))
-        );
-
-        return (await results).map(result =>
-            result.match(
-                v => v,
-                e => ""
-            )
-        );
+                .map(promise =>
+                    Resultify.promise(promise).then(filled =>
+                        Optional.from(
+                            filled
+                                .or(err => {
+                                    ThemeManager.logger.except("Could not read scss file", err);
+                                    return new Err("");
+                                })
+                                .collect()
+                        )
+                    )
+                )
+        ).then(filled => filled.map(optionalS => optionalS.getOr("")));
     }
 
     private async finalSCSS(): Promise<string> {
         const scssImports = [`@import '${this.variablesPath}';`];
-        return [`${scssImports.join("\n")}`, ...(await this.allSCSS())].join("\n");
+        return this.allSCSS().then(filled => [`${scssImports.join("\n")}`, ...filled].join("\n"));
     }
 
-    private async writeCombineSCSS(): Promise<Result<void, unknown>> {
-        return wrapIO(
-            ThemeManager.logger,
-            writeFileAsync(this.combinedSCSSPath, await this.finalSCSS()),
-            "Could not write combined scss"
-        );
-    }
-
-    private async saveVariables(): Promise<Result<void, unknown>> {
-        return wrapIO(
-            ThemeManager.logger,
-            writeFileAsync(this.variablesPath, toCss(await ConfigManager.instace().config.getOrLoad())),
-            "Could not write variables scss"
-        );
-    }
-
-    private async rebuildCss(): Promise<Result<void, unknown>> {
-        return (
-            await wrapIO(
-                ThemeManager.logger,
-                execAsync(`sass --no-source-map ${this.combinedSCSSPath} ${this.endCSSPath}`),
-                "Unable to rebuild final css"
+    private async writeCombineSCSS(): Promise<void> {
+        return this.finalSCSS().then(filled =>
+            Resultify.promise(writeFileAsync(this.combinedSCSSPath, filled)).then(filled =>
+                filled
+                    .or(err => {
+                        ThemeManager.logger.except("Could not write combined scss", err);
+                        return Err.of(undefined);
+                    })
+                    .apply(() => Ok.of(undefined))
+                    .collect()
             )
-        ).match<Result<void, unknown>>(
-            _ => new Ok<void>(undefined),
-            e => new Err<unknown>(e)
+        );
+    }
+
+    private async saveVariables(): Promise<void> {
+        return ConfigManager.instace()
+            .config.getOrLoad()
+            .then(filled =>
+                Resultify.promise(writeFileAsync(this.variablesPath, toCss(filled))).then(fileWritten =>
+                    fileWritten
+                        .or(err => {
+                            ThemeManager.logger.except("Could not write variables scss", err);
+                            return Err.of(undefined);
+                        })
+                        .collect()
+                )
+            );
+    }
+
+    private async rebuildCss(): Promise<void> {
+        return Resultify.promise(execAsync(`sass --no-source-map ${this.combinedSCSSPath} ${this.endCSSPath}`)).then(
+            filled =>
+                filled
+                    .or(err => {
+                        ThemeManager.logger.except("Unable to rebuild final css", err);
+                        return Err.of(undefined);
+                    })
+                    .apply(() => Ok.of(undefined))
+                    .collect()
         );
     }
 
     private async loadStyle(): Promise<void> {
         ThemeManager.logger.info("Starting css load");
-        const savedVariables = this.saveVariables();
-        const combinedFiles = this.writeCombineSCSS();
-
-        await savedVariables;
-        await combinedFiles;
-        (await this.rebuildCss()).match(
-            _ => {
+        return this.saveVariables()
+            .then(() => this.writeCombineSCSS())
+            .then(() => this.rebuildCss())
+            .then(() => {
                 App.apply_css(this.endCSSPath, true);
                 ThemeManager.logger.info("Config loaded successfully");
                 this.notify();
-            },
-            _ => _
-        );
+            });
     }
 
     public async notify(): Promise<void> {
@@ -103,13 +116,12 @@ export class ThemeManager {
 
     @Measured(ThemeManager.logger.debug)
     public async syncLoadStyle(): Promise<Result<void, unknown>> {
-        return this.reloader.sync(this.loadStyle.bind(this)).then(filled => filled.mapResult(
-            _ => new Ok(_),
-            e => {
+        return this.reloader.sync(this.loadStyle.bind(this)).then(filled =>
+            filled.mapResult(Ok.of, e => {
                 ThemeManager.logger.except("Unable to load theme", e);
                 return new Err(e);
-            }
-        ));
+            })
+        );
     }
 
     public registerListener(): void {

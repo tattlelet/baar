@@ -8,7 +8,6 @@ import { ThemeManager } from "./core/theme";
 import { Measured } from "./core/timer";
 import { App } from "astal/gtk3";
 
-
 export class Baar {
     private static logger: Logger = Logger.get(Baar);
 

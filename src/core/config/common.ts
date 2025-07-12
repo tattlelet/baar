@@ -3,7 +3,8 @@ import { RegexBuilder } from "../regex";
 import { ConfigAggregator, ConfigRecordTransformer } from "./base";
 import { Measured } from "../timer";
 import { Logger } from "../log";
-import { Result, Ok, wrapIO } from "../matcher/base";
+import { Err, Resultify } from "../matcher/base";
+import { Optional } from "../matcher/optional";
 
 export function partialConfigMatcher(): RegexBuilder {
     return RegexBuilder.new()
@@ -70,8 +71,8 @@ export class GroupAggregator<T extends HasGroup> implements ConfigAggregator<T, 
 }
 
 export class NoopTransformer<R> implements ConfigRecordTransformer<R, R> {
-    public transform(configRecord: R): Result<R, undefined> {
-        return new Ok(configRecord);
+    public transform(configRecord: R): Optional<R> {
+        return Optional.from(configRecord);
     }
 }
 
@@ -79,10 +80,16 @@ export class ConfigHelper {
     private static logger = Logger.get(this);
 
     @Measured(ConfigHelper.logger.debug)
-    public static async readConfigFile(path: string): Promise<string | undefined> {
-        return (await wrapIO(ConfigHelper.logger, readFileAsync(path), "Failed to read config file")).match(
-            v => v,
-            _ => undefined
+    public static async readConfigFile(path: string): Promise<Optional<string>> {
+        return Resultify.promise(readFileAsync(path)).then(filled =>
+            Optional.from(
+                filled
+                    .or<undefined>(e => {
+                        ConfigHelper.logger.except("Failed to read config file", e);
+                        return Err.of(undefined);
+                    })
+                    .collect()
+            )
         );
     }
 

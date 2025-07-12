@@ -6,7 +6,7 @@ import { ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./bas
 import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
 import { Measured } from "../timer";
 import { Logger, LogMe } from "../log";
-import { Result, Ok, Err } from "../matcher/base";
+import { Optional } from "../matcher/optional";
 
 export interface ReplaceConfigRecord {
     readonly group?: string;
@@ -53,47 +53,36 @@ export class ReplacerConfigRecordParser implements ConfigRecordParser<ReplaceCon
         .flags("u")
         .build();
 
-    public parse(line: string): Result<ReplaceConfigRecord, undefined> {
-        return RegexMatcher.matchString(line, ReplacerConfigRecordParser.RECORD_REGEX, "matcher").mapResult(
-            match => {
-                const { group, infoType = ClientInfoType.CLASS, matcher, replacer, replacement } = match.groups!;
-                return new Ok({ group, infoType, matcher, replacer, replacement });
-            },
-            e => new Err(undefined)
-        );
+    public parse(line: string): Optional<ReplaceConfigRecord> {
+        return RegexMatcher.matchString(line, ReplacerConfigRecordParser.RECORD_REGEX, "matcher").map(match => {
+            const { group, infoType = ClientInfoType.CLASS, matcher, replacer, replacement } = match.groups!;
+            return { group, infoType, matcher, replacer, replacement };
+        });
     }
 }
 
 export class ReplacerConfigTransformer implements ConfigRecordTransformer<ReplaceConfigRecord, Replacer> {
-    public transform(configRecord: ReplaceConfigRecord): Result<Replacer, undefined> {
+    public transform(configRecord: ReplaceConfigRecord): Optional<Replacer> {
         if (!enumContainsValue(ClientInfoType, configRecord.infoType)) {
-            return new Err(undefined);
+            return Optional.none();
         }
 
-        const matcher = RegexMatcher.parse(configRecord.matcher).match(
-            regex => regex,
-            e => e
-        );
-
-        if (matcher === undefined) {
-            return new Err(undefined);
+        const matcher = RegexMatcher.parse(configRecord.matcher);
+        if (matcher.isNone()) {
+            return Optional.none();
         }
 
-        const replacer = RegexMatcher.parse(configRecord.replacer).match(
-            regex => regex,
-            e => e
-        );
-
-        if (replacer === undefined) {
-            return new Err(undefined);
+        const replacer = RegexMatcher.parse(configRecord.replacer);
+        if (replacer.isNone()) {
+            return Optional.none();
         }
 
-        return new Ok(
+        return Optional.some(
             new BasicReplacer({
                 group: configRecord.group,
                 infoType: configRecord.infoType as ClientInfoType,
-                infoMatcher: matcher,
-                replacer: replacer,
+                infoMatcher: matcher.unwrap(),
+                replacer: replacer.unwrap(),
                 replacement: configRecord.replacement,
             })
         );
@@ -134,7 +123,7 @@ export class ReplacerConfigParser extends ConfigParser<ReplaceConfigRecord, Repl
     }
 
     @Measured(ReplacerConfigParser.logger.debug)
-    public parse(content?: string): Promise<Replacer[]> {
+    public parse(content: Optional<string>): Promise<Replacer[]> {
         return super.parse(content);
     }
 }

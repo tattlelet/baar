@@ -1,5 +1,5 @@
 import { Logger, LogMe } from "../log";
-import { Result, Ok, Err } from "../matcher/base";
+import { Optional } from "../matcher/optional";
 import { RegexMatcher } from "../regex";
 import { Measured } from "../timer";
 import { ConfigRecordParser, ConfigParser } from "./base";
@@ -10,13 +10,12 @@ class KVConfigRecordParser implements ConfigRecordParser<[string, string]> {
         .orRegexes(/(?<paramKey>[a-zA-Z][a-zA-Z0-9-.]+[a-zA-Z0-9]) +(?<paramValue>[# a-zA-Z0-9-.]+[a-zA-Z0-9])/)
         .build();
 
-    public parse(line: string): Result<[string, string], undefined> {
-        return RegexMatcher.matchString(line, KVConfigRecordParser.RECORD_REGEX, "paramKey", "paramValue").mapResult(
+    public parse(line: string): Optional<[string, string]> {
+        return RegexMatcher.matchString(line, KVConfigRecordParser.RECORD_REGEX, "paramKey", "paramValue").map(
             match => {
                 const { paramKey, paramValue } = match.groups!;
-                return new Ok([paramKey, paramValue]);
-            },
-            e => new Err(undefined)
+                return [paramKey, paramValue];
+            }
         );
     }
 }
@@ -29,16 +28,20 @@ export class KVConfigParser extends ConfigParser<[string, string], [string, stri
     }
 
     @Measured(KVConfigParser.logger.debug)
-    public async parse(content?: string): Promise<Readonly<Record<string, string>>> {
+    public async parse(content: Optional<string>): Promise<Readonly<Record<string, string>>> {
         return super.parse(content);
     }
+}
+
+export enum DefaultKVConfigValues {
+    TASKBAR_MAX_LENGTH = 20,
 }
 
 @LogMe(KVConfig.logger.debug)
 export class KVConfig {
     private static logger = Logger.get(KVConfig);
 
-    public readonly taskbarMaxLength = 20;
+    public readonly taskbarMaxLength = DefaultKVConfigValues.TASKBAR_MAX_LENGTH;
 
     private parseType<T extends string | number | boolean>(key: T, value?: string): T | undefined {
         if (value === "false") {
@@ -66,8 +69,12 @@ export class KVConfig {
     }
 }
 
-export function toCss<T extends Readonly<KVConfig>>(config: T): string {
-    return Object.getOwnPropertyNames(config)
-        .map(key => `\$${key}: ${(config as any)[key]};`)
-        .join("\n");
+export function toCss<T extends Readonly<KVConfig>>(configOp: Optional<T>): string {
+    return configOp
+        .map(config =>
+            Object.getOwnPropertyNames(config)
+                .map(key => `\$${key}: ${(config as any)[key]};`)
+                .join("\n")
+        )
+        .getOr("");
 }

@@ -1,5 +1,5 @@
 import { Logger } from "../log";
-import { Result } from "../matcher/base";
+import { Optional } from "../matcher/optional";
 import { ConfigHelper } from "./common";
 
 export type Readonly<T> = {
@@ -11,11 +11,11 @@ export interface ConfigAggregator<T, U> {
 }
 
 export interface ConfigRecordTransformer<R, T> {
-    transform(configRecord: R): Result<T, undefined>;
+    transform(configRecord: R): Optional<T>;
 }
 
 export interface ConfigRecordParser<R> {
-    parse(line: string): Result<R, undefined>;
+    parse(line: string): Optional<R>;
 }
 
 export abstract class ConfigParser<R, T, U> {
@@ -26,30 +26,35 @@ export abstract class ConfigParser<R, T, U> {
         readonly configAggregator: ConfigAggregator<T, U>
     ) {}
 
-    public async parse(content?: string): Promise<U> {
+    public async parse(content: Optional<string>): Promise<U> {
         const results: T[] = [];
-        content?.split("\n").forEach((line, lineNumber) => {
-            const result = this.configRecordParser.parse(line).match(
-                record =>
-                    this.configRecordTransformer.transform(record).match(
-                        result => result,
-                        noResult => {
+        if (content.isSome()) {
+            content
+                .unwrap()
+                .split("\n")
+                .forEach((line, lineNumber) => {
+                    const transformedRecord = this.configRecordParser
+                        .parse(line)
+                        .flatMap(record =>
+                            this.configRecordTransformer
+                                .transform(record)
+                                .onNone(() =>
+                                    this.logger.warn(
+                                        `Skipping line ${lineNumber + 1}: '[${line}]' for config. Failed parsing object.`
+                                    )
+                                )
+                        )
+                        .onNone(() =>
                             this.logger.warn(
-                                `Skipping line ${lineNumber + 1}: '[${line}]' for config. Failed parsing object.`
-                            );
-                            return undefined;
-                        }
-                    ),
-                noRecord => {
-                    this.logger.warn(`Skipping line ${lineNumber + 1}: '[${line}]' for config. Failed matching rules`);
-                    return undefined;
-                }
-            );
+                                `Skipping line ${lineNumber + 1}: '[${line}]' for config. Failed matching rules`
+                            )
+                        );
 
-            if (result !== undefined) {
-                results.push(result);
-            }
-        });
+                    if (transformedRecord.isSome()) {
+                        results.push(transformedRecord.unwrap());
+                    }
+                });
+        }
         return this.configAggregator.aggregate(results);
     }
 }
@@ -59,7 +64,7 @@ export async function readConfigFile<C, U>(
     configParser: ConfigParser<any, any, U>,
     path: string
 ): Promise<C> {
-    const content = ConfigHelper.readConfigFile(path);
-    const partialConfig = configParser.parse((await content) || "");
-    return new that(await partialConfig);
+    return ConfigHelper.readConfigFile(path)
+        .then(content => configParser.parse(content))
+        .then(partialConfig => new that(partialConfig));
 }

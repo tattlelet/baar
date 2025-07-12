@@ -1,12 +1,12 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
 import { RegexMatcher } from "../regex";
-import { ConfigRecordParser, ConfigRecordTransformer, ConfigParser, ConfigAggregator } from "./base";
-import { GroupAggregator, HasGroup, partialConfigMatcher, ReadonlyAggregator } from "./common";
+import { ConfigRecordParser, ConfigRecordTransformer, ConfigParser } from "./base";
+import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
 import { enumContainsValue } from "../enum";
 import { ClientInfoType, getClientInfo } from "../hyprclt";
 import { Measured } from "../timer";
 import { Logger, LogMe } from "../log";
-import { Result, Ok, Err } from "../matcher/base";
+import { Optional } from "../matcher/optional";
 
 export interface SymbolConfigRecord {
     readonly group?: string;
@@ -70,35 +70,30 @@ export class SymbolConfigRecordParser implements ConfigRecordParser<SymbolConfig
         .flags("u")
         .build();
 
-    public parse(line: string): Result<SymbolConfigRecord, undefined> {
-        return RegexMatcher.matchString(line, SymbolConfigRecordParser.RECORD_REGEX, "matcher", "symbol").mapResult(
-            match => {
-                const { group, infoType = ClientInfoType.CLASS, matcher, symbol } = match.groups!;
-                return new Ok({ group, infoType, matcher, symbol });
-            },
-            e => new Err(undefined)
-        );
+    public parse(line: string): Optional<SymbolConfigRecord> {
+        return RegexMatcher.matchString(line, SymbolConfigRecordParser.RECORD_REGEX, "matcher", "symbol").map(match => {
+            const { group, infoType = ClientInfoType.CLASS, matcher, symbol } = match.groups!;
+            return { group, infoType, matcher, symbol } as SymbolConfigRecord;
+        });
     }
 }
 
 export class SymbolConfigTransformer implements ConfigRecordTransformer<SymbolConfigRecord, SymbolTranslator> {
     private static logger: Logger = Logger.get(this);
 
-    transform(configRecord: SymbolConfigRecord): Result<SymbolMatcher, undefined> {
+    transform(configRecord: SymbolConfigRecord): Optional<SymbolMatcher> {
         if (!enumContainsValue(ClientInfoType, configRecord.infoType)) {
-            return Err.of(undefined);
+            return Optional.none();
         }
 
-        return RegexMatcher.parse(configRecord.matcher).mapResult(
-            matcher => Ok.of(
+        return RegexMatcher.parse(configRecord.matcher).map(
+            matcher =>
                 new SymbolMatcher({
                     group: configRecord.group,
                     infoType: configRecord.infoType as ClientInfoType,
                     infoMatcher: matcher,
                     symbol: configRecord.symbol,
                 })
-            ),
-            e => Err.of(undefined)
         );
     }
 }
@@ -116,13 +111,14 @@ export class SymbolConfigParser extends ConfigParser<SymbolConfigRecord, SymbolT
     }
 
     @Measured(SymbolConfigParser.logger.debug)
-    public parse(content?: string): Promise<SymbolTranslator[]> {
+    public parse(content: Optional<string>): Promise<SymbolTranslator[]> {
         return super.parse(content);
     }
 }
 
 @LogMe(SymbolConfig.logger.debug)
 export class SymbolConfig {
+    public static DEFAULT_ICON = "";
     private static logger = Logger.get(SymbolConfig);
 
     private static defaultSymbols(): SymbolTranslator[] {
@@ -195,7 +191,7 @@ export class SymbolConfig {
             }
         }
 
-        return "";
+        return SymbolConfig.DEFAULT_ICON;
     }
 
     private *matcherIterator(): Generator<SymbolTranslator> {

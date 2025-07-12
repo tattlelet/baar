@@ -47,24 +47,22 @@ export class HyprCtl {
     }
 
     public async devices(): Promise<Result<HyprctlDeviceLayout, unknown>> {
-        return Resultify.promise(Asyncify.from(this.requestDevices.bind(this))())
-            .then(
-                filled => filled.or(
-                    err => {
-                        HyprCtl.logger.except("Failed getting devices info from hyprctl", err)
-                        return Err.of(err);
-                    }
-                )
-            );
+        return Resultify.promise(Asyncify.from(this.requestDevices.bind(this))()).then(filled =>
+            filled.or(err => {
+                HyprCtl.logger.except("Failed getting devices info from hyprctl", err);
+                return Err.of(err);
+            })
+        );
     }
 
     public async mainKeyboard(): Promise<Result<HyprctlKeyboard, unknown>> {
-        return this.devices().then(
-            filled => filled.apply(
-                result => Optional.from(result.keyboards.find(kb => kb.main))
+        return this.devices().then(filled =>
+            filled.apply(result =>
+                Optional.from(result.keyboards.find(kb => kb.main))
                     .map<Result<HyprctlKeyboard, unknown>>(Ok.of)
-                    .getOr(Err.of("Failed to find layout")))
-        )
+                    .getOr(Err.of("Failed to find layout"))
+            )
+        );
     }
 
     requestDevices(): HyprctlDeviceLayout {
@@ -73,15 +71,14 @@ export class HyprCtl {
 
     @Measured(HyprCtl.logger.debug)
     public async switchKbLayout(direction: SwitchKeyboardOptions): Promise<void> {
-        this.mainKeyboard().then(
-            filled => filled.apply(
-                main => Resultify.from(this.hyprlandDispatcher)(`switchxkblayout ${main.name} ${direction} 2`)
-            )
-            .match(
-                () => HyprCtl.logger.debug("Switched kb layout successfully"),
-                e => HyprCtl.logger.except("Failed to switch keyboard layout", e)
-            )
-        )
+        return this.mainKeyboard().then(filled =>
+            filled
+                .apply(main => Resultify.from(this.hyprlandDispatcher)(`switchxkblayout ${main.name} ${direction} 2`))
+                .match(
+                    () => HyprCtl.logger.debug("Switched kb layout successfully"),
+                    e => HyprCtl.logger.except("Failed to switch keyboard layout", e)
+                )
+        );
     }
 }
 
