@@ -1,10 +1,11 @@
-import { readFileAsync, Gio } from "astal";
+import { Gio, readFileAsync } from "astal";
+import { Logger } from "../lang/log";
+import { Measured } from "../lang/timer";
+import { Err } from "../matcher/base";
+import { Resultify } from "../matcher/helpers";
+import { Optional } from "../matcher/optional";
 import { RegexBuilder } from "../regex";
 import { ConfigAggregator, ConfigRecordTransformer } from "./base";
-import { Measured } from "../timer";
-import { Logger } from "../log";
-import { Err, Resultify } from "../matcher/base";
-import { Optional } from "../matcher/optional";
 
 export function partialConfigMatcher(): RegexBuilder {
     return RegexBuilder.new()
@@ -85,7 +86,7 @@ export class ConfigHelper {
             Optional.from(
                 filled
                     .or<undefined>(e => {
-                        ConfigHelper.logger.except("Failed to read config file", e);
+                        ConfigHelper.logger.debug("Failed to read config file, using defaults", e);
                         return Err.of(undefined);
                     })
                     .collect()

@@ -1,4 +1,4 @@
-import { Logger } from "../log";
+import { Logger } from "../lang/log";
 
 export abstract class Result<V, E> {
     public abstract isOk(): this is Ok<V>;
@@ -9,7 +9,6 @@ export abstract class Result<V, E> {
         errHandler: (e: E) => Result<R, ER>
     ): Result<R, ER>;
 
-    // Unsafe methods
     public abstract expect(message?: string): V;
     public abstract unwrap(): V;
     public abstract unwrapErr(): E;
@@ -109,7 +108,7 @@ export class Err<E> extends Result<never, E> {
     }
 
     public expect(message?: string): never {
-        Err.logger.except(message || "Expected Ok but got Err", this.value);
+        Err.logger.error(message || "Expected Ok but got Err", this.value);
         throw this.value;
     }
 
@@ -122,27 +121,7 @@ export class Err<E> extends Result<never, E> {
     }
 }
 
-export function wrapFToResult<T extends any[], R extends any>(
-    f: (...args: T) => R
-): (...args: T) => Result<R, unknown> {
-    return (...args: T): Result<R, unknown> => {
-        try {
-            return Ok.of(f(...args));
-        } catch (e) {
-            return Err.of(e);
-        }
-    };
-}
-
-export const Resultify = {
-    from: wrapFToResult,
-    promise: wrapPromise,
-};
-
-export function wrapPromise<T>(promise: Promise<T>): Promise<Result<T, unknown>> {
-    return promise.then(Ok.of).catch(Err.of);
-}
-
+// Todo: delete
 export async function wrapIO<T>(logger: Logger, promise: Promise<T>, message: string): Promise<Result<T, unknown>> {
     return promise.then(Ok.of).catch(err => {
         logger.warn(message, err);

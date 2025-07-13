@@ -1,16 +1,12 @@
-import { GLib, GObject, Gio } from "astal";
-import { channel } from "diagnostics_channel";
-import volume from "external/HyprPanel/src/configuration/modules/config/bar/volume";
-import GL from "gi://GL?version=1.0";
+import { Gio, GLib, GObject } from "astal";
 import Wp from "gi://Wp?version=0.5";
-import { connect } from "http2";
-import { it } from "node:test";
-import { createDeferred, DeferredPromise, withTimeout, wrapAsyncResult } from "src/core/async/base";
+import { createDeferred, DeferredPromise, withTimeout } from "src/core/async/base";
+import { allOf } from "src/core/lang/iter";
 
-import { all } from "src/core/iter";
-import { Logger } from "src/core/log";
-import { Result, Err, Ok } from "src/core/matcher/base";
-import { Measured } from "src/core/timer";
+import { Logger } from "src/core/lang/log";
+import { Measured } from "src/core/lang/timer";
+import { Err, Ok, Result } from "src/core/matcher/base";
+import { Resultify } from "src/core/matcher/helpers";
 
 // const mixer = Wp.Plugin.find(core, "mixer-api");
 // mixer?.connect("changed", (node, id) => {
@@ -203,28 +199,29 @@ export class WirePlumberClient {
 
     private static withTimeout(deferred: DeferredPromise<void>): Promise<boolean> {
         // There are two layers of response (timeout and the actual execution)
-        return withTimeout(WirePlumberClient.OBJECT_MANAGER_TIMEOUT, async () => wrapAsyncResult(deferred.promise))()
+        // Todo: rewrite this
+        return withTimeout(WirePlumberClient.OBJECT_MANAGER_TIMEOUT, async () => Resultify.promise(deferred.promise))()
             .then(filled => {
                 return filled.match(
                     withTimeoutOk =>
                         withTimeoutOk.match(
                             loadOk => {
-                                WirePlumberClient.logger.debug("Operation executed successfully");
+                                WirePlumberClient.logger.error("Operation executed successfully");
                                 return true;
                             },
                             loadError => {
-                                WirePlumberClient.logger.except("Failed executing operation", loadError);
+                                WirePlumberClient.logger.error("Failed executing operation", loadError);
                                 return false;
                             }
                         ),
                     timeoutError => {
-                        WirePlumberClient.logger.except("Timed out connecting object manager", timeoutError);
+                        WirePlumberClient.logger.error("Timed out connecting object manager", timeoutError);
                         return false;
                     }
                 );
             })
             .catch(rejected => {
-                WirePlumberClient.logger.except("Deferred promise rejected", rejected);
+                WirePlumberClient.logger.error("Deferred promise rejected", rejected);
                 return false;
             });
     }
@@ -234,13 +231,13 @@ export class WirePlumberClient {
         successMessage: string,
         failedMessage: string
     ): Promise<[boolean, T | undefined]> {
-        return (await wrapAsyncResult(promise)).match(
+        return (await Resultify.promise(promise)).match(
             v => {
                 WirePlumberClient.logger.debug(successMessage);
                 return [true, v];
             },
             e => {
-                WirePlumberClient.logger.except(failedMessage, e);
+                WirePlumberClient.logger.error(failedMessage, e);
                 return [false, undefined] as [boolean, T | undefined];
             }
         );
@@ -330,7 +327,7 @@ export class WirePlumberClient {
         );
         this.loadPlugin(core, deferredMixerApiLoad, "libwireplumber-module-mixer-api", "module", "mixer-api");
 
-        const allPluginsLoaded = all(
+        const allPluginsLoaded = allOf(
             (
                 await Promise.all([
                     WirePlumberClient.withTimeout(deferredNodesApiLoad),

@@ -2,7 +2,7 @@ export abstract class Optional<V> {
     public abstract isSome(): this is Some<V>;
     public abstract isNone(): this is None<V>;
 
-    public abstract map<U>(fn: (v: V) => U): Optional<U>;
+    public abstract apply<U>(fn: (v: V) => U): Optional<U>;
     public abstract onNone(fn: () => void): this;
 
     public abstract flatMap<U>(fn: (v: V) => Optional<U>): Optional<U>;
@@ -43,7 +43,7 @@ class Some<V> extends Optional<V> {
         return false;
     }
 
-    public map<U>(fn: (v: V) => U): Optional<U> {
+    public apply<U>(fn: (v: V) => U): Optional<U> {
         return Optional.from(fn(this.value));
     }
 
@@ -87,7 +87,7 @@ class None<V> extends Optional<V> {
         return true;
     }
 
-    public map<U>(fn: (v: V) => U): Optional<U> {
+    public apply<U>(fn: (v: V) => U): Optional<U> {
         return Optional.none();
     }
 

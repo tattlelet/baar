@@ -1,13 +1,26 @@
-import "./src/core/constants.ts"
+import "./src/types";
 import { App, Gtk } from "astal/gtk3";
 import { Baar } from "src/baar";
 import MixerWindow from "src/components/mixer";
-import { promiseWithTimout } from "src/core/async/base.ts";
-import { ConfigSetup, ConfigManager } from "src/core/configmanager";
-import { Handler } from "src/core/handler";
+import { ConfigManager, ConfigSetup } from "src/core/config/configmanager";
+import { IPCHandler } from "src/core/handler";
 import { ThemeManager } from "src/core/theme";
 
-// Move mixer away from here
+const origThen = Promise.prototype.then;
+
+Promise.prototype.then = function(onFulfilled, onRejected): any {
+    return origThen.call(this, onFulfilled, function (error) {
+        logError(error, "⚠️ Unhandled rejection caught via global then()");
+        if (onRejected) {
+            return onRejected(error);
+        } else {
+            throw error;
+        }
+    });
+};
+
+// Todo: Handle - Fontconfig warning: using without calling FcInit()
+// Todo: Move mixer away from here
 if (ARGV[0] === "mixer") {
     App.start({
         instanceName: 'mixer',
@@ -15,17 +28,23 @@ if (ARGV[0] === "mixer") {
             print(request);
         },
         main: async () => {
-            ConfigSetup.run();
+            ConfigSetup.run().then(filled => Baar.handleExit(filled, "Failed setting up config environment"));
+
             const configManager = ConfigManager.instace();
-            configManager.startMonitors();
-    
+            configManager.startMonitors().then(filled => Baar.handleExit(filled, "Failed starting config monitors"));
+            configManager.load().then(filled => Baar.handleExit(filled, "Failed to load config files or defaults"));
+
             const themeManager = ThemeManager.instace();
             themeManager.startMonitors();
-            themeManager.registerListener();
-    
-            const configLoad = configManager.load();
-            await promiseWithTimout(1000 * 60 * 5, themeManager.notifyOnceOnLoad.bind(themeManager));
-            await configLoad;
+            themeManager
+                .registerListener()
+                .then(filled => Baar.handleExit(filled, "Failed to register theme notification"));
+
+            await themeManager.loaded(1000 * 60 * 5).then(filled => {
+                if (filled.isErr()) {
+                    Baar.handleExit(false, "Timeout waiting for CSS loaded signal", filled.unwrapErr());
+                }
+            });
 
             const w = new Gtk.Window({
                 name: "mixer",
@@ -46,7 +65,7 @@ if (ARGV[0] === "mixer") {
 else {
     App.start({
         instanceName: 'baar',
-        requestHandler: Handler.requestHandler,
+        requestHandler: IPCHandler.requestHandler,
         main: Baar.init,
     });
 }

@@ -1,4 +1,4 @@
-import { Logger } from "../log";
+import { Logger } from "../lang/log";
 import { Optional } from "../matcher/optional";
 import { ConfigHelper } from "./common";
 
@@ -39,13 +39,13 @@ export abstract class ConfigParser<R, T, U> {
                             this.configRecordTransformer
                                 .transform(record)
                                 .onNone(() =>
-                                    this.logger.warn(
+                                    this.logger.debug(
                                         `Skipping line ${lineNumber + 1}: '[${line}]' for config. Failed parsing object.`
                                     )
                                 )
                         )
                         .onNone(() =>
-                            this.logger.warn(
+                            this.logger.debug(
                                 `Skipping line ${lineNumber + 1}: '[${line}]' for config. Failed matching rules`
                             )
                         );

@@ -1,11 +1,8 @@
-import { Logger } from "../log";
-import { Result, Ok, Err } from "../matcher/base";
+import { Logger } from "../lang/log";
+import { Err, Ok, Result } from "../matcher/base";
+import { Resultify } from "../matcher/helpers";
+import { AbortController, AbortedBySignalError, AbortSignal } from "./signal";
 
-const logger: Logger = Logger.get(this);
-
-/*
- * Provides synchronous executions of this.sync(f) with timeout
- */
 export class LockedRunner {
     private static logger = Logger.get(LockedRunner);
 
@@ -23,56 +20,14 @@ export class LockedRunner {
         f: (...args: T) => Promise<R>,
         ...args: T
     ): Promise<Result<R, unknown>> {
-        const fToRun = this.timeout > 0 ? withTimeout(this.timeout, f) : wrapAsyncFToResult(f);
-        const result = this.lock.then(async () => await fToRun(...args));
-        this.lock = result.catch(LockedRunner.logger.except.bind(null, "LockedRunned failed")).finally(this.newLock);
+        const fToRun = this.timeout > 0 ? withTimeout(this.timeout, f) : Resultify.fromAsync(f);
+        const result = this.lock.then(() => fToRun(...args));
+        this.lock = result.finally(this.newLock);
         return result;
     }
 }
 
-export class AbortController {
-    constructor(public signal = new AbortSignal()) {}
-
-    abort() {
-        this.signal.aborted = true;
-        for (const cb of this.signal.listeners) {
-            cb();
-        }
-    }
-}
-
-export class AbortSignal {
-    constructor(
-        public aborted = false,
-        public listeners = Array.of<() => void>()
-    ) {}
-
-    addEventListener(event: string, cb: () => void): void {
-        if (event === "abort") {
-            this.listeners.push(cb);
-        }
-    }
-}
-
-export function wrapAsyncFToResult<T extends any[], R extends any>(
-    f: (...args: T) => Promise<R>
-): (...args: T) => Promise<Result<R, unknown>> {
-    return async (...args: T): Promise<Result<R, unknown>> => {
-        return f(...args)
-            .then(Ok.of)
-            .catch(Err.of);
-    };
-}
-
-export function wrapAsyncResult<R extends any>(promise: Promise<R>): Promise<Result<R, unknown>> {
-    return promise
-        .then(filled => {
-            return new Ok(filled);
-        })
-        .catch(rejected => {
-            return new Err(rejected);
-        });
-}
+export class AsyncTimeoutError extends Error {}
 
 export async function signalWrapper<T extends any[], R extends any>(
     signal: AbortSignal,
@@ -81,17 +36,16 @@ export async function signalWrapper<T extends any[], R extends any>(
 ): Promise<Result<R, unknown>> {
     return new Promise<Result<R, unknown>>((resolve, reject) => {
         if (signal.aborted) {
-            print("aborteded");
-            reject(new Error("Aborted before start"));
+            reject(Err.of("Aborted before start"));
             return;
         }
 
         f(...args).then(filled => {
-            resolve(new Ok(filled));
+            resolve(Ok.of(filled));
         });
 
         signal.addEventListener("abort", () => {
-            reject(new Error("Aborted"));
+            reject(Err.of(new AbortedBySignalError("Signal abort sent")));
         });
     });
 }
@@ -103,7 +57,7 @@ export function withTimeout<T extends any[], R extends any>(
     return function (...args: T): Promise<Result<R, unknown>> {
         if (timeout <= 0) {
             return new Promise(resolve => {
-                resolve(new Err(new Error("Invalid timeout input, timeout has to be > 0")));
+                resolve(Err.of("Invalid timeout input, timeout has to be > 0"));
             });
         }
 
@@ -115,54 +69,16 @@ export function withTimeout<T extends any[], R extends any>(
         }, timeout);
 
         return signalWrapper(signal, f, ...args)
-            .catch(err => {
-                if (signal.aborted) {
-                    return new Err(new Error("Timeout"));
-                }
-                return new Err(err);
-            })
+            .catch((err: Err<unknown>) =>
+                err.or(e => {
+                    if (e instanceof AbortedBySignalError) {
+                        return Err.of(new AsyncTimeoutError("Timedout by signal handler", { cause: e }));
+                    }
+                    return Err.of(e);
+                })
+            )
             .finally(() => clearTimeout(timeoutExec));
     };
-}
-
-export const Asyncify = {
-    from: wrapAsync,
-};
-
-export function wrapAsync<T extends any[], R extends any>(f: (...args: T) => R): (...args: T) => Promise<R> {
-    return async (...args: T) => f(...args);
-}
-
-export class Atomic<T extends any> {
-    constructor(
-        private t: T,
-        private lockedRunner = new LockedRunner()
-    ) {}
-
-    private async _set(t: T): Promise<void> {
-        this.t = t;
-    }
-
-    public async set(t: T): Promise<void> {
-        this.lockedRunner.sync(this._set.bind(this), t);
-    }
-
-    public get(): T {
-        return this.t;
-    }
-}
-
-export function promiseWithTimout(
-    timeout: number,
-    callback: (f: () => Promise<void>) => void
-): Promise<Result<void, unknown>> {
-    const notifyF = () => {
-        return new Promise<void>(resolve => {
-            callback(async () => resolve(undefined));
-        });
-    };
-
-    return withTimeout(timeout, notifyF)();
 }
 
 export class DeferredPromise<T extends any | PromiseLike<any>> {
@@ -171,6 +87,27 @@ export class DeferredPromise<T extends any | PromiseLike<any>> {
         public readonly resolve: (value: T) => void,
         public readonly reject: (value: unknown) => void
     ) {}
+
+    public async withTimeout(timeout: number): Promise<Result<T, unknown>> {
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        const timeoutPromise = new Promise<Result<T, unknown>>(resolve => {
+            timeoutId = setTimeout(() => resolve(Err.of("Timeout")), timeout);
+        });
+
+        const wrapped = this.promise
+            .then(value => {
+                return Ok.of(value);
+            })
+            .catch(error => {
+                return Err.of(error);
+            })
+            .finally(() => {
+                clearTimeout(timeoutId);
+            });
+
+        return Promise.race([timeoutPromise, wrapped]);
+    }
 }
 
 export function createDeferred<T extends any | PromiseLike<any>>(): Result<DeferredPromise<T>, unknown> {
@@ -183,8 +120,8 @@ export function createDeferred<T extends any | PromiseLike<any>>(): Result<Defer
     });
 
     if (resolve === undefined || reject === undefined) {
-        return new Err(new Error("Unable to grab resolve and reject handlers from promise"));
+        return Err.of("Unable to grab resolve and reject handlers from promise");
     }
 
-    return new Ok(new DeferredPromise(promise, resolve!, reject!));
+    return Ok.of(new DeferredPromise(promise, resolve, reject));
 }

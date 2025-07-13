@@ -1,15 +1,11 @@
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
-import { Revealer } from "astal/gtk3/widget";
-import { MouseEvents } from "./common/events";
-import { bind, Binding, execAsync, Gio, GLib, GObject, Variable } from "astal";
+import { bind, execAsync, GLib, Variable } from "astal";
+import { App, Gtk } from "astal/gtk3";
 import AstalWp from "gi://AstalWp";
-import { Separator } from "./common/astalified";
-import Wp from "gi://Wp?version=0.5";
-import GtkLayerShell from "gi://GtkLayerShell?version=0.1";
-import { runAsyncCommand } from "external/HyprPanel/src/components/bar/utils/input/commandExecutor";
-import { WirePlumberClient } from "./wireplumber/client";
-import { Logger } from "src/core/log";
+import { Logger } from "src/core/lang/log";
 import { wrapIO } from "src/core/matcher/base";
+import { Separator } from "./common/astalified";
+import { MouseEvents } from "./common/events";
+import { WirePlumberClient } from "./wireplumber/client";
 
 const wireplumb = AstalWp.get_default();
 
@@ -33,7 +29,7 @@ export enum ActiveMenu {
 export default async function MixerWindow(): Promise<JSX.Element> {
     const server = WirePlumberClient.instance();
     await server.start().catch(rejection => {
-        Logger.get().except("Failed royally", rejection);
+        Logger.get().error("Failed royally", rejection);
         App.quit(1);
     });
     Logger.get().info("Server loaded");
@@ -209,7 +205,7 @@ export const MixerBadge = (): JSX.Element => {
                         )
                     ).match(
                         v => Logger.get(MixerWindow).info(v),
-                        e => Logger.get(MixerWindow).except("Unable to open mixer", e)
+                        e => Logger.get(MixerWindow).error("Unable to open mixer", e)
                     );
                 })}
             />
@@ -230,7 +226,7 @@ export const MixerBadge = (): JSX.Element => {
                         )
                     ).match(
                         v => Logger.get(MixerWindow).info(v),
-                        e => Logger.get(MixerWindow).except("Unable to open mixer", e)
+                        e => Logger.get(MixerWindow).error("Unable to open mixer", e)
                     );
                 })}
             />

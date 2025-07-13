@@ -1,10 +1,11 @@
 import { execAsync } from "astal";
-import { escapeRegExp, RegexMatcher } from "./regex";
 import { HyprCtl } from "./hyprclt";
+import { Logger } from "./lang/log";
+import { Measured } from "./lang/timer";
+import { Ok, Result } from "./matcher/base";
+import { Resultify } from "./matcher/helpers";
+import { escapeRegExp, RegexMatcher } from "./regex";
 import { isAtoZ } from "./symbols";
-import { Measured } from "./timer";
-import { Logger } from "./log";
-import { Result, Ok, Err, Resultify } from "./matcher/base";
 
 export interface KbLayoutMapping {
     readonly symbol: string;
@@ -57,22 +58,19 @@ export class KbLayoutFinder {
         // This comes from xkeyboard
         const cmd = `grep -P '^\\s*\\w{2}\\s+${escapeRegExp(layout)}$' /usr/share/X11/xkb/rules/evdev.lst`;
         return Resultify.promise(execAsync(cmd)).then(filled =>
-            filled
-                .or(err => {
-                    KbLayoutFinder.logger.except(`Failed finding country code ${layout}`, err);
-                    return new Err("");
-                })
-                .apply(v =>
-                    Ok.of(
-                        RegexMatcher.matchString(v, /^\s*(?<code>\w{2})/, "code")
-                            .map(match => {
-                                this.cache.set(layout, match.groups!.code);
-                                return match.groups!.code;
-                            })
-                            .getOr("")
-                    )
-                )
-                .collect()
+            filled.match(
+                v =>
+                    RegexMatcher.matchString(v, /^\s*(?<code>\w{2})/, "code")
+                        .apply(match => {
+                            this.cache.set(layout, match.groups!.code);
+                            return match.groups!.code;
+                        })
+                        .getOr(""),
+                err => {
+                    KbLayoutFinder.logger.error(`Failed finding country code ${layout}`, err);
+                    return "";
+                }
+            )
         );
     }
 

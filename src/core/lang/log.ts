@@ -17,11 +17,31 @@ export class Logger {
             Object.getOwnPropertyNames(this).forEach(key => {
                 const consoleKey = key === "info" ? "log" : key;
                 if (consoleKey in console) {
-                    (this as any)[key] = (...args: any[]): _LogFunc =>
-                        (console as any)[consoleKey](classField, ...args);
+                    (this as any)[key] = (...args: any[]): void =>
+                        this.createLogger(consoleKey as keyof Console, classField)(...args);
                 }
             });
         }
+    }
+
+    private createLogger(consoleKey: keyof Console, classField: string): _LogFunc {
+        return (...args: any[]) => {
+            let reason: unknown;
+            let finalArgs = args;
+
+            console.info();
+
+            if (args.length && args[args.length - 1] instanceof Error) {
+                reason = args[args.length - 1];
+                finalArgs = args.slice(0, -1);
+            }
+
+            (console as any)[consoleKey](classField, ...finalArgs);
+
+            if (reason) {
+                this.exceptStack(reason, (console as any)[consoleKey].bind(console, classField, "(reason):"));
+            }
+        };
     }
 
     public assert(condition: boolean, message?: string): asserts condition {
@@ -34,17 +54,12 @@ export class Logger {
         }
     }
 
-    public except(message: string, reason: unknown): void {
-        this.error(message);
-        this.exceptStack(reason);
-    }
-
-    private exceptStack(reason: unknown, depth = 0, seen = new WeakSet()): void {
+    private exceptStack(reason: unknown, log: _LogFunc, depth = 0, seen = new WeakSet()): void {
         const prefix = "  ".repeat(depth); // for indentation
 
         if (typeof reason === "object" && reason !== null) {
             if (seen.has(reason)) {
-                this.error(`${prefix}↪️ (circular reference detected)`);
+                log(`${prefix}↪️ (circular reference detected)`);
                 return;
             }
             seen.add(reason);
@@ -54,11 +69,12 @@ export class Logger {
             const maybeStack = (reason as any).stack;
 
             const msg = maybeMsg ? `: ${maybeMsg}` : "";
-            this.error(`${prefix}🔴 ${ctor}${msg}`);
+            log(`${prefix}🔴 ${ctor}${msg}`);
             if (maybeStack && typeof maybeStack === "string") {
-                this.error(
+                log(
                     `${prefix}${maybeStack
                         .split("\n")
+                        .filter(l => l !== "")
                         .map(l => prefix + l)
                         .join("\n")}`
                 );
@@ -66,7 +82,7 @@ export class Logger {
 
             // GJS GLib.Error support
             if (reason instanceof GLib.Error) {
-                this.error(
+                log(
                     `${prefix}🔵 GLib.Error → domain: ${reason.domain}, code: ${reason.code}, message: ${reason.message}`
                 );
             }
@@ -74,24 +90,18 @@ export class Logger {
             // Known nested error keys
             const nestedFields = ["cause", "inner", "originalError", "error"];
 
-            // ES2022 Error.cause support (non-enumerable)
-            if (reason instanceof Error && reason.cause && typeof reason.cause === "object") {
-                this.error(`${prefix}↪ Nested error via "cause":`);
-                this.exceptStack(reason.cause, depth + 1, seen);
-            }
-
             // Check for manually attached nested errors
             for (const key of nestedFields) {
                 const val: any = (reason as any)[key];
-                if (val && typeof val === "object" && val !== reason) {
-                    this.error(`${prefix}↪ Nested error via "${key}":`);
-                    this.exceptStack(val, depth + 1, seen);
+                if (val !== null && val !== undefined && typeof val === "object" && val !== reason) {
+                    log(`${prefix}↪ Nested error via "${key}":`);
+                    this.exceptStack(val, log, depth + 1, seen);
                 }
             }
         } else if (typeof reason === "string") {
-            this.error(`${prefix}🟡 Error string: "${reason}"`);
+            log(`${prefix}🟡 Error string: "${reason}"`);
         } else {
-            this.error(`${prefix}⚫️ Unknown error type (${typeof reason}):`, reason);
+            log(`${prefix}⚫️ Unknown error type (${typeof reason}):`, reason);
         }
     }
 

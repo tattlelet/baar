@@ -1,12 +1,12 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { enumContainsValue } from "../enum";
 import { ClientInfoType, getClientInfo } from "../hyprclt";
+import { enumContainsValue } from "../lang/enum";
+import { Logger, LogMe } from "../lang/log";
+import { Measured } from "../lang/timer";
+import { Optional } from "../matcher/optional";
 import { RegexMatcher } from "../regex";
 import { ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
 import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
-import { Measured } from "../timer";
-import { Logger, LogMe } from "../log";
-import { Optional } from "../matcher/optional";
 
 export interface ReplaceConfigRecord {
     readonly group?: string;
@@ -54,7 +54,7 @@ export class ReplacerConfigRecordParser implements ConfigRecordParser<ReplaceCon
         .build();
 
     public parse(line: string): Optional<ReplaceConfigRecord> {
-        return RegexMatcher.matchString(line, ReplacerConfigRecordParser.RECORD_REGEX, "matcher").map(match => {
+        return RegexMatcher.matchString(line, ReplacerConfigRecordParser.RECORD_REGEX, "matcher").apply(match => {
             const { group, infoType = ClientInfoType.CLASS, matcher, replacer, replacement } = match.groups!;
             return { group, infoType, matcher, replacer, replacement };
         });

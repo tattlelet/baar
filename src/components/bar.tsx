@@ -41,7 +41,7 @@ function getTaskbarSize(window: Gtk.Window): Dimension {
     };
 }
 
-export default async function Bar(hybridMonitor: HybridMonitor): Promise<Nullable<JSX.Element>> {
+export default async function Bar(hybridMonitor: HybridMonitor): Promise<JSX.Element | null> {
     const { TOP, LEFT, RIGHT } = Astal.WindowAnchor;
     const activeX = new Variable(0);
     const enableResize = new Variable(false);

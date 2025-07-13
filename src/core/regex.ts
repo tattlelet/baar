@@ -1,5 +1,5 @@
-import { anyOf, toIterator } from "./iter";
-import { Logger } from "./log";
+import { anyOf, toIterator } from "./lang/iter";
+import { Logger } from "./lang/log";
 import { Optional } from "./matcher/optional";
 
 export function escapeRegExp(str: string): string {
@@ -69,14 +69,14 @@ export class RegexMatcher {
         try {
             return Optional.some(
                 RegexMatcher.matchString(matcher, RegexMatcher.REGEX_TYPE_MATCHER, "pattern")
-                    .map(matcher => new RegExp(matcher.groups!.pattern, matcher.groups!.flags))
+                    .apply(matcher => new RegExp(matcher.groups!.pattern, matcher.groups!.flags))
                     .getOr(() => {
-                        RegexMatcher.logger.warn(`Provided regex ${matcher} will be treated as a string match`);
+                        RegexMatcher.logger.debug(`Provided regex ${matcher} will be treated as a string match`);
                         return new RegExp(`${escapeRegExp(matcher)}`);
                     })
             );
         } catch (e) {
-            RegexMatcher.logger.warn(`Bad regex provided: ${matcher}`);
+            RegexMatcher.logger.warn(`Bad regex provided: ${matcher}`, e);
             return Optional.none();
         }
     }

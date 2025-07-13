@@ -26,22 +26,22 @@ export function Measured<T>(logF: (...args: any[]) => void) {
         descriptor.value = function (...args: any[]) {
             const timer = new Timer();
 
+            // Finally is not used to avoid logging twice for asyncs
             try {
                 const result = originalMethod.apply(this, args);
 
                 if (result && typeof result.then === "function" && typeof result.finally === "function") {
                     // Async inference
                     return result.finally(() => {
-                        logF(`⏱️ ${propertyKey} elapsed ${timer.fmtElapsed()}`);
+                        logF(`⏱️  ${propertyKey} elapsed ${timer.fmtElapsed()}`);
                     });
                 }
 
                 // Sync inference
-                logF(`⏱️ ${propertyKey} elapsed ${timer.fmtElapsed()}`);
+                logF(`⏱️  ${propertyKey} elapsed ${timer.fmtElapsed()}`);
                 return result;
             } catch (e) {
-                // Sync throw: log and rethrow
-                logF(`⏱️ ${propertyKey} elapsed ${timer.fmtElapsed()}`);
+                logF(`⏱️  ${propertyKey} elapsed ${timer.fmtElapsed()}`);
                 throw e;
             }
         };

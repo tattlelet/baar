@@ -1,6 +1,6 @@
 import { GLib } from "astal";
 import System from "system";
-import { Logger } from "./log";
+import { Logger } from "./lang/log";
 
 export class HandlerResponse {
     constructor(
@@ -13,13 +13,13 @@ export class HandlerResponse {
     }
 }
 
-export class Handler {
-    private static logger = Logger.get(Handler);
+export class IPCHandler {
+    private static logger = Logger.get(IPCHandler);
 
     public static restartApp(response: (response: unknown) => void): void {
-        Handler.logger.info("Restarting Baar...");
+        IPCHandler.logger.info("Restarting Baar...");
         // this is currently only working if initial PID was running in a dev env
-        const result = GLib.spawn_command_line_async(`ags run app.ts &; disown`);
+        const result = GLib.spawn_command_line_async(`ags run --gtk 3 app.ts &; disown`);
         if (result) {
             response(new HandlerResponse(0, "Restart ok").encode());
             System.exit(0);
@@ -29,11 +29,11 @@ export class Handler {
     }
 
     public static requestHandler(request: string, response: (response: unknown) => void): void {
-        Handler.logger.info(request, response);
+        IPCHandler.logger.info(request, response);
 
         switch (request) {
             case "reload":
-                Handler.restartApp(response);
+                IPCHandler.restartApp(response);
                 break;
             default:
                 response("I dont do anything yet :)");

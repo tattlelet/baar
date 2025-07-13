@@ -5,9 +5,9 @@ import { HybridMonitor } from "src/core/monitor";
 import { Astal, Gdk, Gtk } from "astal/gtk3";
 import { toSubscript } from "src/core/symbols";
 import { isScrollDown, isScrollUp } from "./common/events";
-import { ConfigManager } from "src/core/configmanager";
 import { SymbolConfig } from "src/core/config/symbolconfig";
 import { DefaultKVConfigValues } from "src/core/config/kvconfig";
+import { ConfigManager } from "src/core/config/configmanager";
 
 const hyprlandService = Hyprland.get_default();
 
@@ -29,19 +29,19 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
 function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
     const foundIcon = ConfigManager.instace()
         .symbols.get()
-        .map(symbols => symbols.getSymbol(client))
+        .apply(symbols => symbols.getSymbol(client))
         .getOr(SymbolConfig.DEFAULT_ICON);
 
     let title = ConfigManager.instace()
         .replacer.get()
-        .map(replacer => replacer.replace(client))
+        .apply(replacer => replacer.replace(client))
         .getOr(client.title);
 
     title = `${foundIcon}: ${title}`;
 
     const maxLenght = ConfigManager.instace()
         .config.get()
-        .map(config => config.taskbarMaxLength)
+        .apply(config => config.taskbarMaxLength)
         .getOr(DefaultKVConfigValues.TASKBAR_MAX_LENGTH);
 
     if (title.length <= maxLenght) {
@@ -56,6 +56,7 @@ const focusedCoordinates = new Variable<(number | null)[]>([null, null]);
 const focusedClinetMonitor = new Variable<Hyprland.Monitor | null>(null);
 
 // Todo: abstract class
+// Todo: workspace move is not being adequately tracked
 export const TaskBar = (props: TaskBarProps): JSX.Element => {
     // Todo: Abstract flip flag
     const replacerReloaded = new Variable(0);
@@ -86,7 +87,7 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
             return clients
                 .filter(
                     client =>
-                        client.monitor === props.hybridMonitor.hyprlandMonitor &&
+                        client.monitor === props.hybridMonitor.hyprlandMonitor.get() &&
                         client.workspace.id > 0 &&
                         client.workspace.id > -1
                     // && activeWorkspaces(monitors).includes(client.workspace)

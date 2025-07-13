@@ -1,10 +1,11 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { boundCall } from "./functions";
-import { Measured } from "./timer";
-import { Logger } from "./log";
-import { Result, Resultify, Err, Ok } from "./matcher/base";
+import { Asyncify } from "./async/helper";
+import { boundCall } from "./lang/functions";
+import { Logger } from "./lang/log";
+import { Measured } from "./lang/timer";
+import { Err, Ok, Result } from "./matcher/base";
+import { Resultify } from "./matcher/helpers";
 import { Optional } from "./matcher/optional";
-import { Asyncify } from "./async/base";
 
 export type HyprctlKeyboard = {
     address: string;
@@ -49,7 +50,7 @@ export class HyprCtl {
     public async devices(): Promise<Result<HyprctlDeviceLayout, unknown>> {
         return Resultify.promise(Asyncify.from(this.requestDevices.bind(this))()).then(filled =>
             filled.or(err => {
-                HyprCtl.logger.except("Failed getting devices info from hyprctl", err);
+                HyprCtl.logger.error("Failed getting devices info from hyprctl", err);
                 return Err.of(err);
             })
         );
@@ -59,7 +60,7 @@ export class HyprCtl {
         return this.devices().then(filled =>
             filled.apply(result =>
                 Optional.from(result.keyboards.find(kb => kb.main))
-                    .map<Result<HyprctlKeyboard, unknown>>(Ok.of)
+                    .apply<Result<HyprctlKeyboard, unknown>>(Ok.of)
                     .getOr(Err.of("Failed to find layout"))
             )
         );
@@ -76,7 +77,7 @@ export class HyprCtl {
                 .apply(main => Resultify.from(this.hyprlandDispatcher)(`switchxkblayout ${main.name} ${direction} 2`))
                 .match(
                     () => HyprCtl.logger.debug("Switched kb layout successfully"),
-                    e => HyprCtl.logger.except("Failed to switch keyboard layout", e)
+                    e => HyprCtl.logger.error("Failed to switch keyboard layout", e)
                 )
         );
     }

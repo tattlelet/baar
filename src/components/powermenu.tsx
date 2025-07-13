@@ -1,9 +1,9 @@
 import { execAsync } from "astal";
-import { Menu, MenuItem } from "./common/astalified";
-import { Gtk, Gdk } from "astal/gtk3";
-import { MouseEvents } from "./common/events";
-import { Logger } from "src/core/log";
+import { Gdk, Gtk } from "astal/gtk3";
+import { Logger } from "src/core/lang/log";
 import { wrapIO } from "src/core/matcher/base";
+import { Menu, MenuItem } from "./common/astalified";
+import { MouseEvents } from "./common/events";
 
 export const PowerMenuButton = (): JSX.Element => {
     const logger = Logger.get(PowerMenuButton);

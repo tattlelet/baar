@@ -1,9 +1,9 @@
-import { Logger, LogMe } from "../log";
+import { Logger, LogMe } from "../lang/log";
+import { Measured } from "../lang/timer";
 import { Optional } from "../matcher/optional";
 import { RegexMatcher } from "../regex";
-import { Measured } from "../timer";
-import { ConfigRecordParser, ConfigParser } from "./base";
-import { NoopTransformer, RecordAggregator, partialConfigMatcher } from "./common";
+import { ConfigParser, ConfigRecordParser } from "./base";
+import { NoopTransformer, partialConfigMatcher, RecordAggregator } from "./common";
 
 class KVConfigRecordParser implements ConfigRecordParser<[string, string]> {
     private static RECORD_REGEX: RegExp = partialConfigMatcher()
@@ -11,7 +11,7 @@ class KVConfigRecordParser implements ConfigRecordParser<[string, string]> {
         .build();
 
     public parse(line: string): Optional<[string, string]> {
-        return RegexMatcher.matchString(line, KVConfigRecordParser.RECORD_REGEX, "paramKey", "paramValue").map(
+        return RegexMatcher.matchString(line, KVConfigRecordParser.RECORD_REGEX, "paramKey", "paramValue").apply(
             match => {
                 const { paramKey, paramValue } = match.groups!;
                 return [paramKey, paramValue];
@@ -71,7 +71,7 @@ export class KVConfig {
 
 export function toCss<T extends Readonly<KVConfig>>(configOp: Optional<T>): string {
     return configOp
-        .map(config =>
+        .apply(config =>
             Object.getOwnPropertyNames(config)
                 .map(key => `\$${key}: ${(config as any)[key]};`)
                 .join("\n")

@@ -1,5 +1,13 @@
 import { GLib } from "astal/gobject";
 
+declare global {
+    const CONFIG_DIR: string;
+    const CONFIG_FILE: string;
+    const TMP: string;
+    const USER: string;
+    const SRC_DIR: string;
+}
+
 Object.assign(globalThis, {
     CONFIG_DIR: `${GLib.get_user_config_dir()}/baar`,
     CONFIG_FILE: `${GLib.get_user_config_dir()}/baar/config`,

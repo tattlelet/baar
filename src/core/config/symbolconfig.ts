@@ -1,12 +1,12 @@
 import AstalHyprland from "gi://AstalHyprland?version=0.1";
-import { RegexMatcher } from "../regex";
-import { ConfigRecordParser, ConfigRecordTransformer, ConfigParser } from "./base";
-import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
-import { enumContainsValue } from "../enum";
 import { ClientInfoType, getClientInfo } from "../hyprclt";
-import { Measured } from "../timer";
-import { Logger, LogMe } from "../log";
+import { enumContainsValue } from "../lang/enum";
+import { Logger, LogMe } from "../lang/log";
+import { Measured } from "../lang/timer";
 import { Optional } from "../matcher/optional";
+import { RegexMatcher } from "../regex";
+import { ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
+import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
 
 export interface SymbolConfigRecord {
     readonly group?: string;
@@ -71,10 +71,12 @@ export class SymbolConfigRecordParser implements ConfigRecordParser<SymbolConfig
         .build();
 
     public parse(line: string): Optional<SymbolConfigRecord> {
-        return RegexMatcher.matchString(line, SymbolConfigRecordParser.RECORD_REGEX, "matcher", "symbol").map(match => {
-            const { group, infoType = ClientInfoType.CLASS, matcher, symbol } = match.groups!;
-            return { group, infoType, matcher, symbol } as SymbolConfigRecord;
-        });
+        return RegexMatcher.matchString(line, SymbolConfigRecordParser.RECORD_REGEX, "matcher", "symbol").apply(
+            match => {
+                const { group, infoType = ClientInfoType.CLASS, matcher, symbol } = match.groups!;
+                return { group, infoType, matcher, symbol } as SymbolConfigRecord;
+            }
+        );
     }
 }
 
@@ -86,7 +88,7 @@ export class SymbolConfigTransformer implements ConfigRecordTransformer<SymbolCo
             return Optional.none();
         }
 
-        return RegexMatcher.parse(configRecord.matcher).map(
+        return RegexMatcher.parse(configRecord.matcher).apply(
             matcher =>
                 new SymbolMatcher({
                     group: configRecord.group,

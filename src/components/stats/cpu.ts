@@ -1,11 +1,10 @@
 import { execAsync, Variable } from "astal";
-import { delimiterSplit } from "src/core/string";
-import { Poller } from "./poller";
 import GTop from "gi://GTop?version=2.0";
-import { EagerPoll } from "../common/variable";
-import { Measured } from "src/core/timer";
-import { Logger } from "src/core/log";
+import { Logger } from "src/core/lang/log";
+import { delimiterSplit } from "src/core/lang/string";
 import { wrapIO } from "src/core/matcher/base";
+import { EagerPoll } from "../common/variable";
+import { Poller } from "./poller";
 
 export interface CpuStats {
     readonly usage?: number;
