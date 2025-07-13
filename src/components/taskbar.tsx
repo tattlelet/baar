@@ -8,8 +8,11 @@ import { isScrollDown, isScrollUp } from "./common/events";
 import { SymbolConfig } from "src/core/config/symbolconfig";
 import { DefaultKVConfigValues } from "src/core/config/kvconfig";
 import { ConfigManager } from "src/core/config/configmanager";
+import { Logger } from "src/core/lang/log";
 
 const hyprlandService = Hyprland.get_default();
+
+const logger = Logger.get(this);
 
 export interface TaskBarProps {
     readonly hybridMonitor: HybridMonitor;
@@ -25,19 +28,38 @@ function getClassName(client: AstalHyprland.Client, focusedClient: AstalHyprland
     return result.join(" ");
 }
 
-// Todo: handle default
-function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
-    const foundIcon = ConfigManager.instace()
+function setSymbol(label: Astal.Label, client: AstalHyprland.Client) {
+    const symbolConfig = ConfigManager.instace()
         .symbols.get()
         .apply(symbols => symbols.getSymbol(client))
-        .getOr(SymbolConfig.DEFAULT_ICON);
+        .getOr(SymbolConfig.DEFAULT_RESULT)
+    
+    label.label = symbolConfig.symbol;
+    if (symbolConfig.color.isSome()) {
+        label.get_style_context().add_class("symbol-override");
 
+        let cssProvider = new Gtk.CssProvider();
+        cssProvider.load_from_data(`
+            label.symbol-override {
+                color: ${symbolConfig.color.get()};
+            }
+        `);
+
+        label.get_style_context().add_provider(
+            cssProvider,
+                Gtk.STYLE_PROVIDER_PRIORITY_USER
+        );
+    }
+    else {
+        label.get_style_context().remove_class("symbol-override");
+    }
+}
+
+function setTitle(label: Astal.Label, client: AstalHyprland.Client) {
     let title = ConfigManager.instace()
         .replacer.get()
         .apply(replacer => replacer.replace(client))
         .getOr(client.title);
-
-    title = `${foundIcon}: ${title}`;
 
     const maxLenght = ConfigManager.instace()
         .config.get()
@@ -119,8 +141,21 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
                         }}
                     >
                         <box tooltipText={`${client.title}`}>
-                            <label className="task-ws-n" label={toSubscript(client.workspace.id)} />
+                            <label 
+                                className="task-ws-n" 
+                                label={toSubscript(client.workspace.id)} />
+                            <label 
+                                className={"task-symbol"}
+                                setup={self => {
+                                    setSymbol(self, client);
+                                    self.hook(client, "notify::title", () => {
+                                        setSymbol(self, client);
+                                    });
+                                }}
+                            />
+                            <label label={": "}/>
                             <label
+                                className={ "task-title" + (client === focusedClient ? " task-title-focused" : "")}
                                 setup={self => {
                                     setTitle(self, client);
                                     self.hook(client, "notify::title", () => {

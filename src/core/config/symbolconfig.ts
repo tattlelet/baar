@@ -7,12 +7,14 @@ import { Optional } from "../matcher/optional";
 import { RegexMatcher } from "../regex";
 import { ConfigParser, ConfigRecordParser, ConfigRecordTransformer } from "./base";
 import { GroupAggregator, HasGroup, partialConfigMatcher } from "./common";
+import { allOf, toIterator } from "../lang/iter";
 
 export interface SymbolConfigRecord {
     readonly group?: string;
     readonly infoType: string;
     readonly matcher: string;
     readonly symbol: string;
+    readonly color?: string;
 }
 
 // Todo: support color
@@ -21,10 +23,15 @@ export interface SymbolMatcherProps {
     readonly infoType: ClientInfoType;
     readonly infoMatcher: RegExp;
     readonly symbol: string;
+    readonly color?: string;
+}
+
+export class SymbolResult {
+    constructor(public readonly symbol: string, public readonly color: Optional<string> = Optional.none()) {}
 }
 
 export interface SymbolTranslator extends HasGroup {
-    translate(client: AstalHyprland.Client): string | undefined;
+    translate(client: AstalHyprland.Client): Optional<SymbolResult>;
 }
 
 export class SymbolMatcher implements SymbolTranslator {
@@ -35,17 +42,17 @@ export class SymbolMatcher implements SymbolTranslator {
         return this.props.group;
     }
 
-    public translate(client: AstalHyprland.Client): string | undefined {
+    public translate(client: AstalHyprland.Client): Optional<SymbolResult> {
         const info = getClientInfo(client, this.props.infoType);
         if (info === undefined) {
-            return undefined;
+            return Optional.none();
         }
 
         if (this.props.infoMatcher.test(info)) {
-            return this.props.symbol;
+            return Optional.some(new SymbolResult(this.props.symbol, Optional.from(this.props.color)));
         }
 
-        return undefined;
+        return Optional.none();
     }
 }
 
@@ -59,22 +66,27 @@ export class ChainedMatcher implements SymbolTranslator {
         return this.thisGroup;
     }
 
-    public translate(client: AstalHyprland.Client): string | undefined {
-        return this.matchers.map(matcher => matcher.translate(client)).reduce((a, b) => a && b);
+    public translate(client: AstalHyprland.Client): Optional<SymbolResult> {
+        const matches = this.matchers.map(matcher => matcher.translate(client));
+        if (matches.length > 0 && allOf(toIterator(matches), match => match.isSome())) {
+            return Optional.from(matches.pop())
+                .getOr(Optional.none());
+        }
+        return Optional.none();
     }
 }
 
 export class SymbolConfigRecordParser implements ConfigRecordParser<SymbolConfigRecord> {
     private static RECORD_REGEX: RegExp = partialConfigMatcher()
-        .orRegexes(/(?:group=(?<group>[^,]+)\s*,\s*)?(?<infoType>[^,]*)\s*,\s*(?<matcher>.+)\s*,\s*(?<symbol>.)/)
+        .orRegexes(/(?:group=(?<group>[^,]+)\s*,\s*)?(?<infoType>[^,]*)\s*,\s*(?<matcher>.+)\s*,\s*(?<symbol>.)(?:\s*,\s*(?<color>#[a-fA-F0-9]{6}))?/)
         .flags("u")
         .build();
 
     public parse(line: string): Optional<SymbolConfigRecord> {
         return RegexMatcher.matchString(line, SymbolConfigRecordParser.RECORD_REGEX, "matcher", "symbol").apply(
             match => {
-                const { group, infoType = ClientInfoType.CLASS, matcher, symbol } = match.groups!;
-                return { group, infoType, matcher, symbol } as SymbolConfigRecord;
+                const { group, infoType = ClientInfoType.CLASS, matcher, symbol, color } = match.groups!;
+                return { group, infoType, matcher, symbol, color } as SymbolConfigRecord;
             }
         );
     }
@@ -95,6 +107,7 @@ export class SymbolConfigTransformer implements ConfigRecordTransformer<SymbolCo
                     infoType: configRecord.infoType as ClientInfoType,
                     infoMatcher: matcher,
                     symbol: configRecord.symbol,
+                    color: configRecord.color
                 })
         );
     }
@@ -120,62 +133,13 @@ export class SymbolConfigParser extends ConfigParser<SymbolConfigRecord, SymbolT
 
 @LogMe(SymbolConfig.logger.debug)
 export class SymbolConfig {
-    public static DEFAULT_ICON = "";
+    // Grab this from KVConfig
+    public static DEFAULT_RESULT = new SymbolResult("");
     private static logger = Logger.get(SymbolConfig);
 
+    // Todo: move this to default config, which has to pointed to by KVConfig
     private static defaultSymbols(): SymbolTranslator[] {
-        return [
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /kitty/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /code-oss/,
-                symbol: "󰨞",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /librewolf/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /nemo/,
-                symbol: "󰝰",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /discord/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /com.discordapp.Discord/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /steam/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /mpv/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /org.kde.gwenview/,
-                symbol: "",
-            }),
-            new SymbolMatcher({
-                infoType: ClientInfoType.CLASS,
-                infoMatcher: /Mullvad VPN/,
-                symbol: "",
-            }),
-        ];
+        return [];
     }
 
     private readonly symbolMatchers: SymbolTranslator[];
@@ -184,16 +148,16 @@ export class SymbolConfig {
         this.symbolMatchers = symbolMatchers.concat(SymbolConfig.defaultSymbols());
     }
 
-    public getSymbol(client: AstalHyprland.Client): string {
+    public getSymbol(client: AstalHyprland.Client): SymbolResult {
         for (const matcher of this.matcherIterator()) {
             const symbol = matcher.translate(client);
 
-            if (symbol !== undefined) {
-                return symbol;
+            if (symbol.isSome()) {
+                return symbol.get();
             }
         }
 
-        return SymbolConfig.DEFAULT_ICON;
+        return SymbolConfig.DEFAULT_RESULT;
     }
 
     private *matcherIterator(): Generator<SymbolTranslator> {

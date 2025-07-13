@@ -250,12 +250,17 @@ window.Bar {
     }
 
     .task-focused {
-        background-color: #a6674d;
+        background-color: #3b4f63;
         box-shadow:
-            inset 0 -0.2em 0 #563222,
+            inset 0 -0.2em 0 #283642,
             0 0.2em 0.3em rgba(0, 0, 0, 0.5),
-            inset 0 0.1em 0 #d47a4d;
+            inset 0 0.1em 0 #5e7c94;
         color: #f2e5d5;
+    }
+
+    .task-title-focused {
+        text-decoration: underline;
+        text-decoration-color: #e03a1d;
     }
 
     .task-ws-n {
