@@ -32,8 +32,8 @@ function setSymbol(label: Astal.Label, client: AstalHyprland.Client) {
     const symbolConfig = ConfigManager.instace()
         .symbols.get()
         .apply(symbols => symbols.getSymbol(client))
-        .getOr(SymbolConfig.DEFAULT_RESULT)
-    
+        .getOr(SymbolConfig.DEFAULT_RESULT);
+
     label.label = symbolConfig.symbol;
     if (symbolConfig.color.isSome()) {
         label.get_style_context().add_class("symbol-override");
@@ -45,12 +45,8 @@ function setSymbol(label: Astal.Label, client: AstalHyprland.Client) {
             }
         `);
 
-        label.get_style_context().add_provider(
-            cssProvider,
-                Gtk.STYLE_PROVIDER_PRIORITY_USER
-        );
-    }
-    else {
+        label.get_style_context().add_provider(cssProvider, Gtk.STYLE_PROVIDER_PRIORITY_USER);
+    } else {
         label.get_style_context().remove_class("symbol-override");
     }
 }
@@ -141,10 +137,8 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
                         }}
                     >
                         <box tooltipText={`${client.title}`}>
-                            <label 
-                                className="task-ws-n" 
-                                label={toSubscript(client.workspace.id)} />
-                            <label 
+                            <label className="task-ws-n" label={toSubscript(client.workspace.id)} />
+                            <label
                                 className={"task-symbol"}
                                 setup={self => {
                                     setSymbol(self, client);
@@ -153,9 +147,9 @@ export const TaskBar = (props: TaskBarProps): JSX.Element => {
                                     });
                                 }}
                             />
-                            <label label={": "}/>
+                            <label label={": "} />
                             <label
-                                className={ "task-title" + (client === focusedClient ? " task-title-focused" : "")}
+                                className={"task-title" + (client === focusedClient ? " task-title-focused" : "")}
                                 setup={self => {
                                     setTitle(self, client);
                                     self.hook(client, "notify::title", () => {

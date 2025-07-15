@@ -22,7 +22,7 @@ export abstract class Optional<V> {
     }
 
     public static none<V = never>(): Optional<V> {
-        return new None<V>();
+        return NONE_INSTANCE as Optional<V>;
     }
 
     public static from<V>(value: V | undefined | null): Optional<V> {
@@ -125,3 +125,5 @@ class None<V> extends Optional<V> {
         return undefined;
     }
 }
+
+const NONE_INSTANCE = new None<never>();

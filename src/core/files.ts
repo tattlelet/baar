@@ -21,3 +21,28 @@ export class FileManager {
         );
     }
 }
+
+export function* gobbler(dir: Gio.File): Iterable<Gio.File> {
+    const enumerator = dir.enumerate_children("standard::name", Gio.FileQueryInfoFlags.NONE, null);
+    try {
+        let fileInfo;
+        while ((fileInfo = enumerator.next_file(null)) !== null) {
+            yield dir.get_child(fileInfo.get_name());
+        }
+    } finally {
+        enumerator.close(null);
+    }
+}
+
+export function tryLoadFileTrimmedSafe(file: Optional<Gio.File>): Optional<string> {
+    return file.flatMap(file => {
+        const [ok, contents] = file.load_contents(null);
+        if (!ok || !contents) {
+            return Optional.none();
+        }
+
+        const decoder = new TextDecoder('utf-8');
+        const trimmed = decoder.decode(contents).trim();
+        return trimmed.length > 0 ? Optional.some(trimmed) : Optional.none();
+    });
+}

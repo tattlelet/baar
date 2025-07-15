@@ -27,7 +27,10 @@ export interface SymbolMatcherProps {
 }
 
 export class SymbolResult {
-    constructor(public readonly symbol: string, public readonly color: Optional<string> = Optional.none()) {}
+    constructor(
+        public readonly symbol: string,
+        public readonly color: Optional<string> = Optional.none()
+    ) {}
 }
 
 export interface SymbolTranslator extends HasGroup {
@@ -69,8 +72,7 @@ export class ChainedMatcher implements SymbolTranslator {
     public translate(client: AstalHyprland.Client): Optional<SymbolResult> {
         const matches = this.matchers.map(matcher => matcher.translate(client));
         if (matches.length > 0 && allOf(toIterator(matches), match => match.isSome())) {
-            return Optional.from(matches.pop())
-                .getOr(Optional.none());
+            return Optional.from(matches.pop()).getOr(Optional.none());
         }
         return Optional.none();
     }
@@ -78,7 +80,9 @@ export class ChainedMatcher implements SymbolTranslator {
 
 export class SymbolConfigRecordParser implements ConfigRecordParser<SymbolConfigRecord> {
     private static RECORD_REGEX: RegExp = partialConfigMatcher()
-        .orRegexes(/(?:group=(?<group>[^,]+)\s*,\s*)?(?<infoType>[^,]*)\s*,\s*(?<matcher>.+)\s*,\s*(?<symbol>.)(?:\s*,\s*(?<color>#[a-fA-F0-9]{6}))?/)
+        .orRegexes(
+            /(?:group=(?<group>[^,]+)\s*,\s*)?(?<infoType>[^,]*)\s*,\s*(?<matcher>.+)\s*,\s*(?<symbol>.)(?:\s*,\s*(?<color>#[a-fA-F0-9]{6}))?/
+        )
         .flags("u")
         .build();
 
@@ -107,7 +111,7 @@ export class SymbolConfigTransformer implements ConfigRecordTransformer<SymbolCo
                     infoType: configRecord.infoType as ClientInfoType,
                     infoMatcher: matcher,
                     symbol: configRecord.symbol,
-                    color: configRecord.color
+                    color: configRecord.color,
                 })
         );
     }
