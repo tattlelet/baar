@@ -250,18 +250,18 @@ window.Bar {
     }
 
     .task-focused {
-        background-color: #3b4f63;
+        background-color: #714663;
         box-shadow:
-            inset 0 -0.2em 0 #283642,
+            inset 0 -0.2em 0 #3d3546,
             0 0.2em 0.3em rgba(0, 0, 0, 0.5),
-            inset 0 0.1em 0 #5e7c94;
+            inset 0 0.1em 0 #c47046;
         color: #f2e5d5;
     }
 
-    .task-title-focused {
-        text-decoration: underline;
-        text-decoration-color: #e03a1d;
-    }
+    // .task-title-focused {
+    //     text-decoration: underline;
+    //     text-decoration-color: #e03a1d;
+    // }
 
     .task-ws-n {
         color: #2ff4f4;
